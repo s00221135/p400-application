@@ -10,6 +10,7 @@ import JoinSpace from "./pages/JoinSpace";
 import Home from "./pages/Home";
 import Register from "./pages/Registration";
 import CleaningRota from "./pages/CleaningRota";
+import Profile from "./pages/Profile";
 
 const App: React.FC = () => {
   return (
@@ -23,6 +24,7 @@ const App: React.FC = () => {
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/cleaning-rota" element={<CleaningRota />} />
+        <Route path="/profile" element={<Profile />} />
 
         </Routes>
       </div>
