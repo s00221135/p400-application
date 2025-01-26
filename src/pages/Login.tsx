@@ -1,16 +1,43 @@
 import React, { useState } from "react";
 import { MDBContainer, MDBInput, MDBBtn } from "mdb-react-ui-kit";
-import logoImage from "../assets/logo.png";
+import { AuthenticationDetails, CognitoUser } from "amazon-cognito-identity-js";
+import { useNavigate } from "react-router-dom";
+import UserPool from "../Cognito";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    console.log("Logging in with:", { username, password });
-    // Simulate navigation
-    window.location.href = "/home";
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const user = new CognitoUser({
+      Username: email,     // email as "username"
+      Pool: UserPool,
+    });
+
+    const authDetails = new AuthenticationDetails({
+      Username: email,
+      Password: password,
+    });
+
+    user.authenticateUser(authDetails, {
+      onSuccess: (session) => {
+        console.log("Login success:", session);
+        // For example, store the token in local storage:
+        // localStorage.setItem("idToken", session.getIdToken().getJwtToken());
+        navigate("/home");
+      },
+      onFailure: (err) => {
+        console.error("Login error:", err);
+        alert("Login failed: " + err.message);
+      },
+      newPasswordRequired: (userAttributes) => {
+        console.log("New password required:", userAttributes);
+        // handle forced password change if needed
+      },
+    });
   };
 
   return (
@@ -29,28 +56,19 @@ const Login: React.FC = () => {
           backgroundColor: "#e0e0e0",
           padding: "20px",
           borderRadius: "8px",
-          maxWidth: "90%",
+          maxWidth: "400px",
           width: "100%",
           textAlign: "center",
           boxSizing: "border-box",
         }}
       >
-        <img
-          src={logoImage}
-          alt="Logo"
-          style={{
-            width: "70px",
-            height: "70px",
-            marginBottom: "20px",
-          }}
-        />
+        <h3 style={{ fontWeight: "bold", marginBottom: "20px" }}>Welcome Back</h3>
         <form onSubmit={handleSubmit}>
-          <h3 style={{ fontWeight: "bold", marginBottom: "20px" }}>Welcome Back</h3>
           <MDBInput
             type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="mb-3"
             style={{ padding: "10px", fontSize: "1rem" }}
           />
@@ -70,10 +88,7 @@ const Login: React.FC = () => {
           >
             Log In
           </MDBBtn>
-          <p
-            className="text-center mt-4"
-            style={{ fontSize: "0.9rem", color: "#555" }}
-          >
+          <p className="text-center mt-4" style={{ fontSize: "0.9rem", color: "#555" }}>
             Don’t have an account?{" "}
             <a href="/register" style={{ color: "#007bff" }}>
               Register
