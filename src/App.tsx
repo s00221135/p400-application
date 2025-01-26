@@ -11,7 +11,7 @@ import Home from "./pages/Home";
 import Register from "./pages/Registration";
 import CleaningRota from "./pages/CleaningRota";
 import Profile from "./pages/Profile";
-
+import Confirm from "./pages/Confirm";
 const App: React.FC = () => {
   return (
     <Router>
@@ -25,6 +25,7 @@ const App: React.FC = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/cleaning-rota" element={<CleaningRota />} />
         <Route path="/profile" element={<Profile />} />
+             <Route path="/confirm" element={<Confirm />} />
 
         </Routes>
       </div>

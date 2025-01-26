@@ -1,3 +1,4 @@
+// src/pages/Login.tsx
 import React, { useState } from "react";
 import { MDBContainer, MDBInput, MDBBtn } from "mdb-react-ui-kit";
 import { AuthenticationDetails, CognitoUser } from "amazon-cognito-identity-js";
@@ -13,7 +14,7 @@ const Login: React.FC = () => {
     e.preventDefault();
 
     const user = new CognitoUser({
-      Username: email,     // email as "username"
+      Username: email,
       Pool: UserPool,
     });
 
@@ -25,8 +26,16 @@ const Login: React.FC = () => {
     user.authenticateUser(authDetails, {
       onSuccess: (session) => {
         console.log("Login success:", session);
-        // For example, store the token in local storage:
-        // localStorage.setItem("idToken", session.getIdToken().getJwtToken());
+
+        // Store ID token in local storage if you want to use a Cognito Authorizer
+        const idToken = session.getIdToken().getJwtToken();
+        localStorage.setItem("idToken", idToken);
+
+        // Also, decode the payload to get the user's sub (unique ID)
+        const payload = session.getIdToken().decodePayload();
+        localStorage.setItem("userID", payload.sub);
+
+        // Navigate to a protected page or home
         navigate("/home");
       },
       onFailure: (err) => {
