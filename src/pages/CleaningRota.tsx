@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import Navigation from "../components/Navigation"; // Adjust path to your Navigation component
+import Navigation from "../components/Navigation"; // Adjust path if needed
 import {
   MDBContainer,
+  MDBRow,
+  MDBCol,
   MDBCard,
   MDBCardBody,
   MDBBtn,
-  MDBRow,
-  MDBCol,
   MDBModal,
   MDBModalDialog,
   MDBModalContent,
@@ -71,7 +71,7 @@ const CleaningRota: React.FC = () => {
   const toggleModal = () => setModalOpen(!modalOpen);
 
   const handleInputChange = (field: keyof Task, value: string) => {
-    setNewTask({ ...newTask, [field]: value });
+    setNewTask((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleAddTask = () => {
@@ -107,116 +107,111 @@ const CleaningRota: React.FC = () => {
 
   return (
     <>
-      {/* Navigation at the top */}
       <Navigation />
 
-      <MDBContainer className="mt-4">
-        <h2 className="text-center">Cleaning Rota</h2>
-        <p className="text-center text-muted">Manage household cleaning tasks</p>
-        <MDBRow className="mb-3">
-          <MDBCol className="text-center">
-            <MDBBtn color="primary" onClick={handleAddTask}>
-              Add Task
-            </MDBBtn>
+      {/* Offset margin if navbar is fixed; remove or adjust if not needed */}
+      <MDBContainer fluid style={{ marginTop: "56px", padding: "2rem" }}>
+        <MDBRow className="justify-content-center">
+          <MDBCol xs="12" sm="10" md="8" lg="6">
+            <h2 className="text-center">Cleaning Rota</h2>
+            <p className="text-center text-muted">
+              Manage household cleaning tasks
+            </p>
+
+            <div className="text-center mb-3">
+              <MDBBtn color="primary" onClick={handleAddTask}>
+                Add Task
+              </MDBBtn>
+            </div>
+
+            {/* List of tasks */}
+            {tasks.map((task) => (
+              <MDBCard key={task.id} className="mb-3">
+                <MDBCardBody>
+                  <h5 className="fw-bold">{task.title}</h5>
+                  <p>
+                    <strong>Assigned To:</strong> {task.assignedTo}
+                  </p>
+                  <p>
+                    <strong>Frequency:</strong> {task.frequency}
+                  </p>
+                  <p>
+                    <strong>Due Date:</strong> {task.dueDate}
+                  </p>
+                  <MDBRow>
+                    <MDBCol>
+                      <MDBBtn color="info" size="sm" onClick={() => handleEditTask(task)}>
+                        Edit
+                      </MDBBtn>
+                    </MDBCol>
+                    <MDBCol>
+                      <MDBBtn color="danger" size="sm" onClick={() => deleteTask(task.id)}>
+                        Delete
+                      </MDBBtn>
+                    </MDBCol>
+                  </MDBRow>
+                </MDBCardBody>
+              </MDBCard>
+            ))}
           </MDBCol>
         </MDBRow>
-
-        {/* Render each task */}
-        {tasks.map((task) => (
-          <MDBCard key={task.id} className="mb-3">
-            <MDBCardBody>
-              <h5 className="fw-bold">{task.title}</h5>
-              <p>
-                <strong>Assigned To:</strong> {task.assignedTo}
-              </p>
-              <p>
-                <strong>Frequency:</strong> {task.frequency}
-              </p>
-              <p>
-                <strong>Due Date:</strong> {task.dueDate}
-              </p>
-              <MDBRow>
-                <MDBCol>
-                  <MDBBtn
-                    color="info"
-                    size="sm"
-                    onClick={() => handleEditTask(task)}
-                  >
-                    Edit
-                  </MDBBtn>
-                </MDBCol>
-                <MDBCol>
-                  <MDBBtn
-                    color="danger"
-                    size="sm"
-                    onClick={() => deleteTask(task.id)}
-                  >
-                    Delete
-                  </MDBBtn>
-                </MDBCol>
-              </MDBRow>
-            </MDBCardBody>
-          </MDBCard>
-        ))}
-
-        {/* Modal for Add/Edit */}
-        <MDBModal show={modalOpen} setShow={setModalOpen}>
-          <MDBModalDialog>
-            <MDBModalContent>
-              <MDBModalHeader>
-                <MDBModalTitle>
-                  {editMode ? "Edit Task" : "Add Task"}
-                </MDBModalTitle>
-                <MDBBtn className="btn-close" color="none" onClick={toggleModal} />
-              </MDBModalHeader>
-              <MDBModalBody>
-                <MDBInput
-                  label="Task Title"
-                  type="text"
-                  value={newTask.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  className="mb-3"
-                />
-                <MDBInput
-                  label="Assigned To"
-                  type="text"
-                  value={newTask.assignedTo}
-                  onChange={(e) =>
-                    handleInputChange("assignedTo", e.target.value)
-                  }
-                  className="mb-3"
-                />
-                <MDBInput
-                  label="Frequency"
-                  type="text"
-                  value={newTask.frequency}
-                  onChange={(e) =>
-                    handleInputChange("frequency", e.target.value)
-                  }
-                  className="mb-3"
-                />
-                <MDBInput
-                  label="Due Date"
-                  type="date"
-                  value={newTask.dueDate}
-                  onChange={(e) =>
-                    handleInputChange("dueDate", e.target.value)
-                  }
-                  className="mb-3"
-                />
-              </MDBModalBody>
-              <MDBModalFooter>
-                <MDBBtn color="secondary" onClick={toggleModal}>
-                  Cancel
-                </MDBBtn>
-                <MDBBtn color="primary" onClick={saveTask}>
-                  Save
-                </MDBBtn>
-              </MDBModalFooter>
-            </MDBModalContent>
-          </MDBModalDialog>
-        </MDBModal>
       </MDBContainer>
+
+      {/* Modal for Add/Edit */}
+      <MDBModal show={modalOpen} setShow={setModalOpen} tabIndex="-1">
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>
+                {editMode ? "Edit Task" : "Add Task"}
+              </MDBModalTitle>
+              <MDBBtn
+                className="btn-close"
+                color="none"
+                onClick={toggleModal}
+              ></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
+              <MDBInput
+                label="Task Title"
+                type="text"
+                value={newTask.title}
+                onChange={(e) => handleInputChange("title", e.target.value)}
+                className="mb-3"
+              />
+              <MDBInput
+                label="Assigned To"
+                type="text"
+                value={newTask.assignedTo}
+                onChange={(e) => handleInputChange("assignedTo", e.target.value)}
+                className="mb-3"
+              />
+              <MDBInput
+                label="Frequency"
+                type="text"
+                value={newTask.frequency}
+                onChange={(e) => handleInputChange("frequency", e.target.value)}
+                className="mb-3"
+              />
+              <MDBInput
+                label="Due Date"
+                type="date"
+                value={newTask.dueDate}
+                onChange={(e) => handleInputChange("dueDate", e.target.value)}
+                className="mb-3"
+              />
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={toggleModal}>
+                Cancel
+              </MDBBtn>
+              <MDBBtn color="primary" onClick={saveTask}>
+                Save
+              </MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
     </>
   );
 };

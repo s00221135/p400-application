@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import Navigation from "../components/Navigation"; // Adjust the import path if needed
 import {
   MDBContainer,
-  MDBCard,
-  MDBCardBody,
   MDBRow,
   MDBCol,
-  MDBCardText,
+  MDBCard,
+  MDBCardBody,
   MDBCardTitle,
+  MDBCardText,
   MDBBtn,
   MDBModal,
   MDBModalDialog,
@@ -28,11 +28,10 @@ interface UserDetails {
   AreaOfStudy: string;
   CreatedAt: string;      // We'll show this as read-only
   DoNotDisturb: boolean;  // We'll toggle this in the modal
-  // Skipping other fields like HouseholdID, Password, Latitude, Longitude for brevity
 }
 
 const Profile: React.FC = () => {
-  // Hard-coded user data from your DB (no API calls)
+  // Hard-coded user data (no API calls)
   const [user, setUser] = useState<UserDetails>({
     UserID: "12345-abcde",
     Name: "John Doe",
@@ -43,15 +42,15 @@ const Profile: React.FC = () => {
     DoNotDisturb: false,
   });
 
-  // For controlling the "Edit" modal
+  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
 
-  // A copy of `user` for editing within the modal (so changes aren’t applied immediately)
+  // For editing
   const [editUser, setEditUser] = useState<UserDetails>(user);
 
   // Open the edit modal, copying current user data
   const handleEdit = () => {
-    setEditUser(user); // Copy existing user data into edit form
+    setEditUser(user);
     setModalOpen(true);
   };
 
@@ -67,7 +66,6 @@ const Profile: React.FC = () => {
   const handleSave = () => {
     console.log("Saving changes to user:", editUser);
     // In a real app, you'd do an API PUT/POST here.
-    // For now, we just update our local `user`.
     setUser(editUser);
     setModalOpen(false);
   };
@@ -76,58 +74,70 @@ const Profile: React.FC = () => {
     <>
       <Navigation />
 
-      <MDBContainer className="py-4">
-        <MDBCard>
-          <MDBCardBody>
-            <MDBRow className="align-items-center mb-3">
-              <MDBCol md="12" className="text-center">
-                <MDBCardTitle>Profile</MDBCardTitle>
-              </MDBCol>
-            </MDBRow>
+      {/* Center the card and ensure content isn't behind a fixed navbar */}
+      <MDBContainer
+        fluid
+        className="py-4"
+        style={{ marginTop: "56px" }} // offset for fixed navbar; remove if not using fixed nav
+      >
+        <MDBRow className="justify-content-center">
+          <MDBCol xs="12" sm="10" md="8" lg="6">
+            <MDBCard className="text-center">
+              <MDBCardBody>
+                {/* Page Title */}
+                <MDBRow className="mb-3">
+                  <MDBCol>
+                    <MDBCardTitle>Profile</MDBCardTitle>
+                  </MDBCol>
+                </MDBRow>
 
-            <MDBRow>
-              <MDBCol md="6">
-                <MDBCardText>
-                  <strong>Name:</strong> {user.Name}
-                </MDBCardText>
-                <MDBCardText>
-                  <strong>Email:</strong> {user.Email}
-                </MDBCardText>
-              </MDBCol>
-              <MDBCol md="6">
-                <MDBCardText>
-                  <strong>College:</strong> {user.College}
-                </MDBCardText>
-                <MDBCardText>
-                  <strong>Area of Study:</strong> {user.AreaOfStudy}
-                </MDBCardText>
-                <MDBCardText>
-                  <strong>Created At:</strong>{" "}
-                  {new Date(user.CreatedAt).toLocaleString()}
-                </MDBCardText>
-              </MDBCol>
-            </MDBRow>
+                {/* Profile Fields */}
+                <MDBRow>
+                  <MDBCol md="6" className="mb-3">
+                    <MDBCardText className="text-start">
+                      <strong>Name:</strong> {user.Name}
+                    </MDBCardText>
+                    <MDBCardText className="text-start">
+                      <strong>Email:</strong> {user.Email}
+                    </MDBCardText>
+                  </MDBCol>
+                  <MDBCol md="6" className="mb-3">
+                    <MDBCardText className="text-start">
+                      <strong>College:</strong> {user.College}
+                    </MDBCardText>
+                    <MDBCardText className="text-start">
+                      <strong>Area of Study:</strong> {user.AreaOfStudy}
+                    </MDBCardText>
+                    <MDBCardText className="text-start">
+                      <strong>Created At:</strong>{" "}
+                      {new Date(user.CreatedAt).toLocaleString()}
+                    </MDBCardText>
+                  </MDBCol>
+                </MDBRow>
 
-            <hr />
+                <hr />
 
-            <MDBRow className="mb-2">
-              <MDBCol md="12">
-                <MDBCardText>
-                  <strong>Do Not Disturb:</strong>{" "}
-                  {user.DoNotDisturb ? "Active" : "Off"}
-                </MDBCardText>
-              </MDBCol>
-            </MDBRow>
+                <MDBRow className="mb-2">
+                  <MDBCol>
+                    <MDBCardText className="text-start">
+                      <strong>Do Not Disturb:</strong>{" "}
+                      {user.DoNotDisturb ? "Active" : "Off"}
+                    </MDBCardText>
+                  </MDBCol>
+                </MDBRow>
 
-            <MDBRow>
-              <MDBCol md="12" className="text-end">
-                <MDBBtn color="primary" onClick={handleEdit}>
-                  Edit Profile
-                </MDBBtn>
-              </MDBCol>
-            </MDBRow>
-          </MDBCardBody>
-        </MDBCard>
+                {/* Edit Button */}
+                <MDBRow>
+                  <MDBCol className="text-end">
+                    <MDBBtn color="primary" onClick={handleEdit}>
+                      Edit Profile
+                    </MDBBtn>
+                  </MDBCol>
+                </MDBRow>
+              </MDBCardBody>
+            </MDBCard>
+          </MDBCol>
+        </MDBRow>
       </MDBContainer>
 
       {/* Edit Modal */}
@@ -142,7 +152,6 @@ const Profile: React.FC = () => {
                 onClick={() => setModalOpen(false)}
               />
             </MDBModalHeader>
-
             <MDBModalBody>
               <MDBInput
                 label="Name"
@@ -181,7 +190,6 @@ const Profile: React.FC = () => {
                 }
               />
             </MDBModalBody>
-
             <MDBModalFooter>
               <MDBBtn color="secondary" onClick={() => setModalOpen(false)}>
                 Cancel
