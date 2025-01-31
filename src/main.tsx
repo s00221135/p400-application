@@ -8,3 +8,5 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+// Clear all tokens when the app loads
+localStorage.removeItem("authTokens");

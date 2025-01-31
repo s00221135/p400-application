@@ -158,7 +158,7 @@ const CleaningRota: React.FC = () => {
       </MDBContainer>
 
       {/* Modal for Add/Edit */}
-      <MDBModal show={modalOpen} setShow={setModalOpen} tabIndex="-1">
+      <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex="-1">
         <MDBModalDialog>
           <MDBModalContent>
             <MDBModalHeader>

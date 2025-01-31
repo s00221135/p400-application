@@ -43,11 +43,11 @@ const Confirm: React.FC = () => {
         console.error("Confirm error:", err);
       } else {
         console.log("Confirmation success:", result);
-        setMessage("Account confirmed successfully! Redirecting to home...");
+        setMessage("Account confirmed successfully!");
 
         // Optionally, navigate to home after a short delay
         setTimeout(() => {
-          navigate("/home");
+          navigate("/setup-space");
         }, 2000); // 2-second delay
       }
     });

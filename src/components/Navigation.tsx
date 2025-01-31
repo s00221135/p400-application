@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   MDBNavbar,
   MDBNavbarBrand,
@@ -19,11 +19,10 @@ const Navigation: React.FC = () => {
   const navigate = useNavigate();
 
   // Helper to apply "bold + underline" classes if the path is active
-  const getActiveClass = (path: string) => {
-    return location.pathname === path ? "fw-bold text-decoration-underline" : "";
-  };
+  const getActiveClass = (path: string) =>
+    location.pathname === path ? "fw-bold text-decoration-underline" : "";
 
-  // Detect if view is mobile
+  // Detect mobile view
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const handleResize = () => {
@@ -33,17 +32,19 @@ const Navigation: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Logout
+  // Logout: clear stored tokens and navigate to the login page
   const handleLogout = () => {
-    console.log("User logged out");
-    window.location.href = "/";
+    localStorage.removeItem("authTokens");
+    navigate("/login");
   };
 
-  // Page title logic based on current path
+  // Determine page title and icon based on the current path
   let pageTitle = "Home";
+  let pageIcon = "home";
   switch (location.pathname) {
     case "/cleaning-rota":
       pageTitle = "Cleaning Rota";
+      pageIcon = "broom";
       break;
     case "/todo-list":
       pageTitle = "To Do List";
@@ -53,27 +54,18 @@ const Navigation: React.FC = () => {
       break;
     case "/profile":
       pageTitle = "Profile";
+      pageIcon = "user";
       break;
     default:
       pageTitle = "Home";
+      pageIcon = "home";
       break;
-  }
-
-  // Optional route-based icon
-  let pageIcon = "home";
-  if (pageTitle === "Cleaning Rota") {
-    pageIcon = "broom";
-  } else if (pageTitle === "Profile") {
-    pageIcon = "user";
   }
 
   return (
     <MDBNavbar expand="lg" light bgColor="light" fixed="top">
       <div className="container-fluid">
-        <MDBNavbarBrand
-          style={{ cursor: "pointer" }}
-          onClick={() => navigate("/home")}
-        >
+        <MDBNavbarBrand style={{ cursor: "pointer" }} onClick={() => navigate("/home")}>
           <MDBIcon fas icon={pageIcon} className="me-2" />
           {pageTitle}
         </MDBNavbarBrand>
@@ -81,56 +73,36 @@ const Navigation: React.FC = () => {
         {isMobile ? (
           <MDBDropdown>
             <MDBDropdownToggle tag="a" href="#!" role="button">
-              ☰ {/* Hamburger menu */}
+              ☰
             </MDBDropdownToggle>
             <MDBDropdownMenu>
               <MDBDropdownItem>
-                <MDBNavbarLink 
-                  href="/home"
-                  className={getActiveClass("/home")}  
-                >
+                <MDBNavbarLink href="/home" className={getActiveClass("/home")}>
                   Home
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
-                <MDBNavbarLink 
-                  href="/todo-list"
-                  className={getActiveClass("/todo-list")}
-                >
+                <MDBNavbarLink href="/todo-list" className={getActiveClass("/todo-list")}>
                   To Do List
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
-                <MDBNavbarLink 
-                  href="/reserve-space"
-                  className={getActiveClass("/reserve-space")}
-                >
+                <MDBNavbarLink href="/reserve-space" className={getActiveClass("/reserve-space")}>
                   Reserve Space
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
-                <MDBNavbarLink
-                  href="/cleaning-rota"
-                  className={getActiveClass("/cleaning-rota")}
-                >
+                <MDBNavbarLink href="/cleaning-rota" className={getActiveClass("/cleaning-rota")}>
                   Cleaning Rota
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
-                <MDBNavbarLink 
-                  href="/profile"
-                  className={getActiveClass("/profile")}
-                >
+                <MDBNavbarLink href="/profile" className={getActiveClass("/profile")}>
                   Profile
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
-                <MDBBtn
-                  color="danger"
-                  size="sm"
-                  className="w-100"
-                  onClick={handleLogout}
-                >
+                <MDBBtn color="danger" size="sm" className="w-100" onClick={handleLogout}>
                   Log Out
                 </MDBBtn>
               </MDBDropdownItem>
@@ -139,44 +111,27 @@ const Navigation: React.FC = () => {
         ) : (
           <MDBNavbarNav>
             <MDBNavbarItem>
-              <MDBNavbarLink 
-                href="/todo-list"
-                className={getActiveClass("/todo-list")}
-              >
+              <MDBNavbarLink href="/todo-list" className={getActiveClass("/todo-list")}>
                 To Do List
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
-              <MDBNavbarLink 
-                href="/reserve-space"
-                className={getActiveClass("/reserve-space")}
-              >
+              <MDBNavbarLink href="/reserve-space" className={getActiveClass("/reserve-space")}>
                 Reserve Space
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
-              <MDBNavbarLink
-                href="/cleaning-rota"
-                className={getActiveClass("/cleaning-rota")}
-              >
+              <MDBNavbarLink href="/cleaning-rota" className={getActiveClass("/cleaning-rota")}>
                 Cleaning Rota
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
-              <MDBNavbarLink
-                href="/profile"
-                className={getActiveClass("/profile")}
-              >
+              <MDBNavbarLink href="/profile" className={getActiveClass("/profile")}>
                 Profile
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
-              <MDBBtn
-                color="danger"
-                size="sm"
-                className="ms-3"
-                onClick={handleLogout}
-              >
+              <MDBBtn color="danger" size="sm" className="ms-3" onClick={handleLogout}>
                 Log Out
               </MDBBtn>
             </MDBNavbarItem>

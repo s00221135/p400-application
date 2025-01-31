@@ -1,14 +1,16 @@
-import React, { useState } from "react";
-import Navigation from "../components/Navigation"; // Adjust the import path if needed
+// src/pages/Profile.tsx
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MDBContainer,
-  MDBRow,
-  MDBCol,
   MDBCard,
   MDBCardBody,
   MDBCardTitle,
   MDBCardText,
+  MDBRow,
+  MDBCol,
   MDBBtn,
+  MDBSpinner,
   MDBModal,
   MDBModalDialog,
   MDBModalContent,
@@ -17,81 +19,190 @@ import {
   MDBModalBody,
   MDBModalFooter,
   MDBInput,
-  MDBSwitch,
 } from "mdb-react-ui-kit";
+import Navigation from "../components/Navigation";
 
-interface UserDetails {
+interface User {
   UserID: string;
   Name: string;
   Email: string;
   College: string;
   AreaOfStudy: string;
-  CreatedAt: string;      // We'll show this as read-only
-  DoNotDisturb: boolean;  // We'll toggle this in the modal
+  CreatedAt: string;
+  DoNotDisturb: boolean;
+  HouseholdID: string | null;
+  Latitude: number;
+  Longitude: number;
 }
 
 const Profile: React.FC = () => {
-  // Hard-coded user data (no API calls)
-  const [user, setUser] = useState<UserDetails>({
-    UserID: "12345-abcde",
-    Name: "John Doe",
-    Email: "johndoe@atu.ie",
-    College: "ATU Sligo",
-    AreaOfStudy: "Software Development",
-    CreatedAt: "2025-01-18T10:00:00Z",
-    DoNotDisturb: false,
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editModalOpen, setEditModalOpen] = useState<boolean>(false);
+  const [editedUser, setEditedUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      const tokensString = localStorage.getItem("authTokens");
+      const tokens = tokensString ? JSON.parse(tokensString) : null;
+      const accessToken = tokens?.accessToken;
+      const userID = tokens?.userID;
 
-  // For editing
-  const [editUser, setEditUser] = useState<UserDetails>(user);
+      if (!accessToken || !userID) {
+        alert("No valid session found. Please log in.");
+        navigate("/");
+        return;
+      }
 
-  // Open the edit modal, copying current user data
-  const handleEdit = () => {
-    setEditUser(user);
-    setModalOpen(true);
+      try {
+        const response = await fetch("https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+          },
+          // Send the userID in the body so the Lambda can find the record
+          body: JSON.stringify({ UserID: userID }),
+        });
+
+        console.log("API Response Status:", response.status);
+
+        if (response.status === 401) {
+          alert("Session expired. Please log in again.");
+          localStorage.removeItem("authTokens");
+          navigate("/");
+          return;
+        }
+
+        if (response.status === 404) {
+          alert("User not found.");
+          setLoading(false);
+          return;
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(`Error: ${errorData.message}`);
+          setLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("User Data Retrieved:", data);
+        setUser(data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        alert("An error occurred while fetching user data.");
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [navigate]);
+
+  // Logout function
+  const handleLogout = () => {
+    localStorage.removeItem("authTokens");
+    navigate("/");
   };
 
-  // Update local edit state as user types
-  const handleChange = (field: keyof UserDetails, value: string | boolean) => {
-    setEditUser((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  // Open edit modal and prefill with current user data
+  const openEditModal = () => {
+    setEditedUser(user);
+    setEditModalOpen(true);
   };
 
-  // When user clicks "Save"
-  const handleSave = () => {
-    console.log("Saving changes to user:", editUser);
-    // In a real app, you'd do an API PUT/POST here.
-    setUser(editUser);
-    setModalOpen(false);
+  const closeEditModal = () => {
+    setEditModalOpen(false);
   };
+
+  // Handle changes in the edit modal inputs
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editedUser) {
+      setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
+    }
+  };
+
+  // Toggle the Do Not Disturb flag
+  const handleToggleDND = () => {
+    if (editedUser) {
+      setEditedUser({ ...editedUser, DoNotDisturb: !editedUser.DoNotDisturb });
+    }
+  };
+
+  // Save the edits by calling the update-user endpoint
+  const saveEdits = async () => {
+    if (!editedUser) return;
+    const tokensString = localStorage.getItem("authTokens");
+    const tokens = tokensString ? JSON.parse(tokensString) : null;
+    const accessToken = tokens?.accessToken;
+    if (!accessToken) {
+      alert("No valid session found. Please log in.");
+      navigate("/");
+      return;
+    }
+    try {
+      const response = await fetch("https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/update-user", {
+        method: "PUT", // Ensure this matches your API Gateway method for update
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        // Send the entire editedUser object (which should include UserID)
+        body: JSON.stringify(editedUser),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`Error updating profile: ${errorData.message}`);
+        return;
+      }
+
+      const updatedData = await response.json();
+      console.log("Updated User Data:", updatedData);
+      // Adjust according to your Lambda response structure. Here we expect an "UpdatedItem" field.
+      setUser(updatedData.UpdatedItem || updatedData);
+      setEditModalOpen(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("An error occurred while updating your profile.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <MDBContainer className="d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
+        <MDBSpinner grow color="primary" />
+      </MDBContainer>
+    );
+  }
+
+  if (!user) {
+    return <div>No user data available.</div>;
+  }
 
   return (
     <>
+      {/* Render the Navigation header */}
       <Navigation />
 
-      {/* Center the card and ensure content isn't behind a fixed navbar */}
-      <MDBContainer
-        fluid
-        className="py-4"
-        style={{ marginTop: "56px" }} // offset for fixed navbar; remove if not using fixed nav
-      >
+      <MDBContainer className="mt-5">
         <MDBRow className="justify-content-center">
-          <MDBCol xs="12" sm="10" md="8" lg="6">
-            <MDBCard className="text-center">
+          <MDBCol md="8">
+            <MDBCard>
               <MDBCardBody>
-                {/* Page Title */}
                 <MDBRow className="mb-3">
                   <MDBCol>
                     <MDBCardTitle>Profile</MDBCardTitle>
                   </MDBCol>
+                  <MDBCol className="text-end">
+                    <MDBBtn color="danger" onClick={handleLogout}>Logout</MDBBtn>
+                  </MDBCol>
                 </MDBRow>
 
-                {/* Profile Fields */}
                 <MDBRow>
                   <MDBCol md="6" className="mb-3">
                     <MDBCardText className="text-start">
@@ -109,8 +220,7 @@ const Profile: React.FC = () => {
                       <strong>Area of Study:</strong> {user.AreaOfStudy}
                     </MDBCardText>
                     <MDBCardText className="text-start">
-                      <strong>Created At:</strong>{" "}
-                      {new Date(user.CreatedAt).toLocaleString()}
+                      <strong>Created At:</strong> {new Date(user.CreatedAt).toLocaleString()}
                     </MDBCardText>
                   </MDBCol>
                 </MDBRow>
@@ -120,16 +230,14 @@ const Profile: React.FC = () => {
                 <MDBRow className="mb-2">
                   <MDBCol>
                     <MDBCardText className="text-start">
-                      <strong>Do Not Disturb:</strong>{" "}
-                      {user.DoNotDisturb ? "Active" : "Off"}
+                      <strong>Do Not Disturb:</strong> {user.DoNotDisturb ? "Active" : "Off"}
                     </MDBCardText>
                   </MDBCol>
                 </MDBRow>
 
-                {/* Edit Button */}
                 <MDBRow>
                   <MDBCol className="text-end">
-                    <MDBBtn color="primary" onClick={handleEdit}>
+                    <MDBBtn color="primary" onClick={openEditModal}>
                       Edit Profile
                     </MDBBtn>
                   </MDBCol>
@@ -141,66 +249,46 @@ const Profile: React.FC = () => {
       </MDBContainer>
 
       {/* Edit Modal */}
-      <MDBModal show={modalOpen} setShow={setModalOpen}>
-        <MDBModalDialog>
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Edit Profile</MDBModalTitle>
-              <MDBBtn
-                className="btn-close"
-                color="none"
-                onClick={() => setModalOpen(false)}
-              />
-            </MDBModalHeader>
-            <MDBModalBody>
-              <MDBInput
-                label="Name"
-                type="text"
-                className="mb-3"
-                value={editUser.Name}
-                onChange={(e) => handleChange("Name", e.target.value)}
-              />
-              <MDBInput
-                label="Email"
-                type="email"
-                className="mb-3"
-                value={editUser.Email}
-                onChange={(e) => handleChange("Email", e.target.value)}
-              />
-              <MDBInput
-                label="College"
-                type="text"
-                className="mb-3"
-                value={editUser.College}
-                onChange={(e) => handleChange("College", e.target.value)}
-              />
-              <MDBInput
-                label="Area of Study"
-                type="text"
-                className="mb-3"
-                value={editUser.AreaOfStudy}
-                onChange={(e) => handleChange("AreaOfStudy", e.target.value)}
-              />
-              <MDBSwitch
-                id="dndSwitch"
-                label="Do Not Disturb"
-                checked={editUser.DoNotDisturb}
-                onChange={() =>
-                  handleChange("DoNotDisturb", !editUser.DoNotDisturb)
-                }
-              />
-            </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setModalOpen(false)}>
-                Cancel
-              </MDBBtn>
-              <MDBBtn color="primary" onClick={handleSave}>
-                Save
-              </MDBBtn>
-            </MDBModalFooter>
-          </MDBModalContent>
-        </MDBModalDialog>
-      </MDBModal>
+      {editedUser && (
+        <MDBModal open={editModalOpen} setopen={setEditModalOpen}>
+          <MDBModalDialog>
+            <MDBModalContent>
+              <MDBModalHeader>
+                <MDBModalTitle>Edit Profile</MDBModalTitle>
+                <MDBBtn className="btn-close" color="none" onClick={closeEditModal}></MDBBtn>
+              </MDBModalHeader>
+              <MDBModalBody>
+                <div className="mb-3">
+                  <label>Name</label>
+                  <MDBInput type="text" name="Name" value={editedUser.Name} onChange={handleEditChange} />
+                </div>
+                <div className="mb-3">
+                  <label>College</label>
+                  <MDBInput type="text" name="College" value={editedUser.College} onChange={handleEditChange} />
+                </div>
+                <div className="mb-3">
+                  <label>Area of Study</label>
+                  <MDBInput type="text" name="AreaOfStudy" value={editedUser.AreaOfStudy} onChange={handleEditChange} />
+                </div>
+                <div className="mb-3">
+                  <label>Do Not Disturb</label>
+                  <MDBBtn color={editedUser.DoNotDisturb ? "success" : "secondary"} onClick={handleToggleDND}>
+                    {editedUser.DoNotDisturb ? "Active" : "Off"}
+                  </MDBBtn>
+                </div>
+              </MDBModalBody>
+              <MDBModalFooter>
+                <MDBBtn color="secondary" onClick={closeEditModal}>
+                  Cancel
+                </MDBBtn>
+                <MDBBtn color="primary" onClick={saveEdits}>
+                  Save Changes
+                </MDBBtn>
+              </MDBModalFooter>
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
+      )}
     </>
   );
 };
