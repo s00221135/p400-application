@@ -12,6 +12,10 @@ import Register from "./pages/Registration";
 import CleaningRota from "./pages/CleaningRota";
 import Profile from "./pages/Profile";
 import Confirm from "./pages/Confirm";
+import SocialFeed from "./pages/SocialFeed"; // New Social Feed Page
+import AddPost from "./pages/AddPost"; // New Page for Creating a Post
+import ViewPost from "./pages/ViewPost"; // New Page to View a Post
+
 const App: React.FC = () => {
   return (
     <Router>
@@ -20,13 +24,17 @@ const App: React.FC = () => {
           <Route path="/" element={<Login />} /> {/* Default to Login page */}
           <Route path="/setup-space" element={<SetupSpace />} />
           <Route path="/create-space" element={<CreateSpace />} />
-        <Route path="/join-space" element={<JoinSpace />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/cleaning-rota" element={<CleaningRota />} />
-        <Route path="/profile" element={<Profile />} />
-             <Route path="/confirm" element={<Confirm />} />
+          <Route path="/join-space" element={<JoinSpace />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/cleaning-rota" element={<CleaningRota />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/confirm" element={<Confirm />} />
 
+          {/* Social Feed Routes */}
+          <Route path="/social-feed" element={<SocialFeed />} /> {/* Main Feed */}
+          <Route path="/add-post" element={<AddPost />} /> {/* Fix: No props passed */}
+          <Route path="/view-post/:postId" element={<ViewPost />} /> {/* View a Single Post */}
         </Routes>
       </div>
     </Router>
