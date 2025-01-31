@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // Import navigation hook
+import Navigation from "../components/Navigation"; // Import Navigation component
 import {
   MDBContainer,
   MDBRow,
@@ -48,36 +49,42 @@ const SocialFeed: React.FC = () => {
   };
 
   return (
-    <MDBContainer>
-      <MDBRow className="justify-content-center">
-        <MDBCol md="8">
-          <h2 className="text-center">Social Feed</h2>
+    <>
+      {/* Navigation Bar */}
+      <Navigation />
 
-          <div className="text-center mb-3">
-            {/* Navigate to AddPost page instead of opening a modal */}
-            <MDBBtn color="primary" onClick={() => navigate("/add-post")}>
-              Create Post
-            </MDBBtn>
-          </div>
+      {/* Page Content */}
+      <MDBContainer>
+        <MDBRow className="justify-content-center">
+          <MDBCol md="8">
+            <h2 className="text-center">Social Feed</h2>
 
-          {posts.map((post) => (
-            <MDBCard key={post.postId} className="mb-3">
-              <MDBCardBody>
-                <MDBCardTitle>{post.author}</MDBCardTitle>
-                <MDBCardText>{post.content}</MDBCardText>
-                <MDBCardText>
-                  <small>{new Date(post.createdAt).toLocaleString()}</small>
-                </MDBCardText>
+            <div className="text-center mb-3">
+              {/* Navigate to AddPost page instead of opening a modal */}
+              <MDBBtn color="primary" onClick={() => navigate("/add-post")}>
+                Create Post
+              </MDBBtn>
+            </div>
 
-                <MDBBtn color="danger" size="sm" onClick={() => handleLike(post.postId)}>
-                  ❤️ {post.likes}
-                </MDBBtn>
-              </MDBCardBody>
-            </MDBCard>
-          ))}
-        </MDBCol>
-      </MDBRow>
-    </MDBContainer>
+            {posts.map((post) => (
+              <MDBCard key={post.postId} className="mb-3">
+                <MDBCardBody>
+                  <MDBCardTitle>{post.author}</MDBCardTitle>
+                  <MDBCardText>{post.content}</MDBCardText>
+                  <MDBCardText>
+                    <small>{new Date(post.createdAt).toLocaleString()}</small>
+                  </MDBCardText>
+
+                  <MDBBtn color="danger" size="sm" onClick={() => handleLike(post.postId)}>
+                    ❤️ {post.likes}
+                  </MDBBtn>
+                </MDBCardBody>
+              </MDBCard>
+            ))}
+          </MDBCol>
+        </MDBRow>
+      </MDBContainer>
+    </>
   );
 };
 

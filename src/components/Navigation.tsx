@@ -56,6 +56,10 @@ const Navigation: React.FC = () => {
       pageTitle = "Profile";
       pageIcon = "user";
       break;
+      case "/social-feed":  
+      pageTitle = "Social Feed";
+      pageIcon = "user-group"; 
+      break;
     default:
       pageTitle = "Home";
       pageIcon = "home";
@@ -128,6 +132,11 @@ const Navigation: React.FC = () => {
             <MDBNavbarItem>
               <MDBNavbarLink href="/profile" className={getActiveClass("/profile")}>
                 Profile
+              </MDBNavbarLink>
+            </MDBNavbarItem>
+            <MDBNavbarItem>
+              <MDBNavbarLink href="/user-group" className={getActiveClass("/social-feed")}>
+                Social Feed
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
