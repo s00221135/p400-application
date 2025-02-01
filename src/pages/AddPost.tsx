@@ -1,143 +1,83 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   MDBContainer,
-  MDBInput,
-  MDBBtn,
   MDBCard,
   MDBCardBody,
   MDBCardTitle,
   MDBCardText,
-  MDBModal,
-  MDBModalDialog,
-  MDBModalContent,
-  MDBModalHeader,
-  MDBModalTitle,
-  MDBModalBody,
-  MDBModalFooter,
+  MDBInput,
+  MDBBtn,
 } from "mdb-react-ui-kit";
 
-// Predefined tag options
-const tagOptions = ["Event", "Help Needed", "Social", "College", "Miscellaneous"];
+const API_BASE_URL = "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev";
 
-const AddPost: React.FC = () => {
-  const [postContent, setPostContent] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [geofence, setGeofence] = useState<string | null>(null);
-  const [showLocationModal, setShowLocationModal] = useState(false);
+interface Comment {
+  commentId: string;
+  author: string;
+  content: string;
+  createdAt: string;
+}
 
-  const handleSubmit = async () => {
-    if (!geofence) {
-      alert("Please set a location before posting.");
-      return;
-    }
+const PostPage: React.FC = () => {
+  const { postId } = useParams<{ postId: string }>();
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [loading, setLoading] = useState<boolean>(true);
 
-    const newPost = {
-      content: postContent,
-      author: "User123", // Replace with actual logged-in user
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      geofence: geofence,
-      tags: selectedTags, // Attach selected tags
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/get-comments/${postId}`);
+        const data = await response.json();
+        setComments(data.comments);
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
+    fetchComments();
+  }, [postId]);
+
+  const handleCommentSubmit = async () => {
     try {
-      await fetch("https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev/create-post", {
+      await fetch(`${API_BASE_URL}/create-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newPost),
+        body: JSON.stringify({
+          PostID: postId,
+          Content: newComment,
+          UserID: "12345-abcde",
+        }),
       });
-      alert("Post created successfully!");
-      setPostContent("");
-      setSelectedTags([]); // Reset tags
+
+      setComments([...comments, { commentId: crypto.randomUUID(), content: newComment, author: "User123", createdAt: new Date().toISOString() }]);
+      setNewComment("");
     } catch (error) {
-      console.error("Error creating post:", error);
+      console.error("Error posting comment:", error);
     }
-  };
-
-  const handleConfigureLocation = () => {
-    setShowLocationModal(true);
-  };
-
-  // Placeholder function to simulate geofence selection
-  const saveGeofence = () => {
-    setGeofence("Custom Geofence Set"); // Replace with actual AWS Location Service data
-    setShowLocationModal(false);
-  };
-
-  // Handle tag selection (toggle)
-  const handleTagToggle = (tag: string) => {
-    setSelectedTags((prevTags) =>
-      prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
-    );
   };
 
   return (
-    <MDBContainer className="mt-4">
-      <MDBCard>
-        <MDBCardBody>
-          <MDBCardTitle>Create a Post</MDBCardTitle>
-          <MDBCardText>What's on your mind?</MDBCardText>
-          <MDBInput
-            type="textarea"
-            value={postContent}
-            onChange={(e) => setPostContent(e.target.value)}
-            className="mb-3"
-          />
+    <MDBContainer>
+      <h5>Comments</h5>
+      {loading ? <p>Loading comments...</p> : comments.map(comment => (
+        <MDBCard key={comment.commentId} className="mb-3">
+          <MDBCardBody>
+            <MDBCardTitle>{comment.author}</MDBCardTitle>
+            <MDBCardText>{comment.content}</MDBCardText>
+          </MDBCardBody>
+        </MDBCard>
+      ))}
 
-          {/* Tag Selection */}
-          <div className="mb-3">
-            <MDBCardText>Select Tags:</MDBCardText>
-            {tagOptions.map((tag) => (
-              <MDBBtn
-                key={tag}
-                color={selectedTags.includes(tag) ? "primary" : "secondary"}
-                outline={!selectedTags.includes(tag)}
-                size="sm"
-                className="m-1"
-                onClick={() => handleTagToggle(tag)}
-              >
-                {tag}
-              </MDBBtn>
-            ))}
-          </div>
-
-          {/* Configure Location Button */}
-          <MDBBtn color="info" onClick={handleConfigureLocation} className="mb-2">
-            Configure Location
-          </MDBBtn>
-          {geofence && <MDBCardText className="mt-2">📍 {geofence}</MDBCardText>}
-
-          {/* Submit Post */}
-          <MDBBtn color="primary" className="mt-3" onClick={handleSubmit}>
-            Post
-          </MDBBtn>
-        </MDBCardBody>
-      </MDBCard>
-
-      {/* Modal for location selection */}
-      <MDBModal open={showLocationModal} setOpen={setShowLocationModal}>
-        <MDBModalDialog>
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Set Post Visibility Area</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setShowLocationModal(false)}></MDBBtn>
-            </MDBModalHeader>
-            <MDBModalBody>
-              {/* Placeholder Map */}
-              <div style={{ height: "300px", background: "#e0e0e0", textAlign: "center", padding: "20px" }}>
-                [ Map Component Goes Here ]
-              </div>
-              <p className="text-center mt-2">Select an area on the map for post visibility.</p>
-            </MDBModalBody>
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={() => setShowLocationModal(false)}>Cancel</MDBBtn>
-              <MDBBtn color="primary" onClick={saveGeofence}>Save Location</MDBBtn>
-            </MDBModalFooter>
-          </MDBModalContent>
-        </MDBModalDialog>
-      </MDBModal>
+      <MDBInput label="Add a comment" value={newComment} onChange={(e) => setNewComment(e.target.value)} />
+      <MDBBtn className="mt-2" onClick={handleCommentSubmit}>
+        Comment
+      </MDBBtn>
     </MDBContainer>
   );
 };
 
-export default AddPost;
+export default PostPage;

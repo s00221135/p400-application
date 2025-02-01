@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   MDBContainer,
   MDBCard,
@@ -9,68 +10,147 @@ import {
   MDBBtn,
 } from "mdb-react-ui-kit";
 
-interface Comment {
-  commentId: string;
-  author: string;
-  content: string;
-  createdAt: string;
+const API_BASE_URL = "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev";
+
+interface Post {
+  PostID: string;
+  Content: string;
+  UserName: string;  // ✅ Updated to use display name instead of UserID
+  CreatedAt: string;
+  Likes: number;
+  Tags: string[];
 }
 
-const PostPage: React.FC = () => {
-  // Placeholder post instead of fetching from API
-  const [post] = useState<{ content: string; author: string }>({
-    content: "This is a sample post about student life!",
-    author: "Alice",
-  });
+interface Comment {
+  CommentID: string;
+  Author: string;
+  Content: string;
+  CreatedAt: string;
+}
 
-  // Placeholder comments
-  const [comments, setComments] = useState<Comment[]>([
-    {
-      commentId: "1",
-      author: "Bob",
-      content: "Great post! Totally agree.",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      commentId: "2",
-      author: "Charlie",
-      content: "I just moved into a new place too!",
-      createdAt: new Date().toISOString(),
-    },
-  ]);
-
+const ViewPost: React.FC = () => {
+  const { postId } = useParams<{ postId: string }>();
+  const [post, setPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCommentSubmit = () => {
-    // Create a new comment locally
-    const commentData: Comment = {
-      commentId: crypto.randomUUID(), // Generate a unique ID
-      content: newComment,
-      author: "User123", // Placeholder user
-      createdAt: new Date().toISOString(),
+  // Fetch post details & comments
+  useEffect(() => {
+    const fetchPostAndComments = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // ✅ Fetch the post
+        const postResponse = await fetch(`${API_BASE_URL}/get-posts/${postId}`);
+        if (!postResponse.ok) {
+          throw new Error(`Failed to fetch post: ${postResponse.status}`);
+        }
+        const postData = await postResponse.json();
+        setPost(postData);
+
+        // ✅ Fetch comments for the post
+        const commentsResponse = await fetch(`${API_BASE_URL}/get-comments/${postId}`);
+        if (!commentsResponse.ok) {
+          throw new Error(`Failed to fetch comments: ${commentsResponse.status}`);
+        }
+        const commentsData = await commentsResponse.json();
+        setComments(commentsData.comments || []);
+
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load post or comments.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setComments((prev) => [...prev, commentData]); // Add new comment locally
-    setNewComment("");
+    fetchPostAndComments();
+  }, [postId]);
+
+  // ✅ Handle Comment Submission
+  const handleCommentSubmit = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/create-comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          PostID: postId,
+          Content: newComment,
+          UserID: "12345-abcde", // Replace with actual user ID from authentication
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to post comment.");
+      }
+
+      const newCommentData = {
+        CommentID: crypto.randomUUID(),
+        Content: newComment,
+        Author: "User123",
+        CreatedAt: new Date().toISOString(),
+      };
+
+      setComments((prev) => [...prev, newCommentData]);
+      setNewComment("");
+    } catch (err) {
+      console.error("Error posting comment:", err);
+      setError("Failed to post comment.");
+    }
+  };
+
+  // ✅ Handle Like
+  const handleLike = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/like-post`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ PostID: postId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPost((prev) => prev ? { ...prev, Likes: data.UpdatedLikes } : null);
+      } else {
+        console.error("Error updating likes:", data.message);
+      }
+    } catch (err) {
+      console.error("Error liking post:", err);
+    }
   };
 
   return (
     <MDBContainer>
+      {loading && <p>Loading post...</p>}
+      {error && <p className="text-danger">{error}</p>}
+
       {post && (
         <MDBCard className="mb-4">
           <MDBCardBody>
-            <MDBCardTitle>{post.author}</MDBCardTitle>
-            <MDBCardText>{post.content}</MDBCardText>
+            <MDBCardTitle>{post.UserName}</MDBCardTitle>
+            <MDBCardText>{post.Content}</MDBCardText>
+            <MDBCardText><small>{new Date(post.CreatedAt).toLocaleString()}</small></MDBCardText>
+            <MDBCardText>Tags: {post.Tags.join(", ")}</MDBCardText>
+
+            <MDBBtn color="danger" size="sm" onClick={handleLike}>
+              ❤️ {post.Likes}
+            </MDBBtn>
           </MDBCardBody>
         </MDBCard>
       )}
 
       <h5>Comments</h5>
+      {comments.length === 0 && !loading && <p>No comments yet.</p>}
+
       {comments.map((comment) => (
-        <MDBCard key={comment.commentId} className="mb-3">
+        <MDBCard key={comment.CommentID} className="mb-3">
           <MDBCardBody>
-            <MDBCardTitle>{comment.author}</MDBCardTitle>
-            <MDBCardText>{comment.content}</MDBCardText>
+            <MDBCardTitle>{comment.Author}</MDBCardTitle>
+            <MDBCardText>{comment.Content}</MDBCardText>
           </MDBCardBody>
         </MDBCard>
       ))}
@@ -87,4 +167,4 @@ const PostPage: React.FC = () => {
   );
 };
 
-export default PostPage;
+export default ViewPost;
