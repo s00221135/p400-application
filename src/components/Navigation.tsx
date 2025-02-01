@@ -32,10 +32,10 @@ const Navigation: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Logout: clear stored tokens and navigate to the login page
+  // Logout function
   const handleLogout = () => {
     localStorage.removeItem("authTokens");
-    navigate("/login");
+    navigate("/");
   };
 
   // Determine page title and icon based on the current path

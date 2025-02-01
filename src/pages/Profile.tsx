@@ -103,11 +103,6 @@ const Profile: React.FC = () => {
     fetchUser();
   }, [navigate]);
 
-  // Logout function
-  const handleLogout = () => {
-    localStorage.removeItem("authTokens");
-    navigate("/");
-  };
 
   // Open edit modal and prefill with current user data
   const openEditModal = () => {
@@ -198,9 +193,7 @@ const Profile: React.FC = () => {
                   <MDBCol>
                     <MDBCardTitle>Profile</MDBCardTitle>
                   </MDBCol>
-                  <MDBCol className="text-end">
-                    <MDBBtn color="danger" onClick={handleLogout}>Logout</MDBBtn>
-                  </MDBCol>
+               
                 </MDBRow>
 
                 <MDBRow>

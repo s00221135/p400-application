@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   MDBContainer,
   MDBCard,
@@ -8,6 +8,7 @@ import {
   MDBCardText,
   MDBInput,
   MDBBtn,
+  MDBIcon,
 } from "mdb-react-ui-kit";
 
 const API_BASE_URL = "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev";
@@ -15,7 +16,7 @@ const API_BASE_URL = "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev
 interface Post {
   PostID: string;
   Content: string;
-  UserName: string;  // ✅ Updated to use display name instead of UserID
+  UserName: string;
   CreatedAt: string;
   Likes: number;
   Tags: string[];
@@ -30,6 +31,7 @@ interface Comment {
 
 const ViewPost: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
+  const navigate = useNavigate();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -43,22 +45,15 @@ const ViewPost: React.FC = () => {
       setError(null);
 
       try {
-        // ✅ Fetch the post
         const postResponse = await fetch(`${API_BASE_URL}/get-posts/${postId}`);
-        if (!postResponse.ok) {
-          throw new Error(`Failed to fetch post: ${postResponse.status}`);
-        }
+        if (!postResponse.ok) throw new Error(`Failed to fetch post: ${postResponse.status}`);
         const postData = await postResponse.json();
         setPost(postData);
 
-        // ✅ Fetch comments for the post
         const commentsResponse = await fetch(`${API_BASE_URL}/get-comments/${postId}`);
-        if (!commentsResponse.ok) {
-          throw new Error(`Failed to fetch comments: ${commentsResponse.status}`);
-        }
+        if (!commentsResponse.ok) throw new Error(`Failed to fetch comments: ${commentsResponse.status}`);
         const commentsData = await commentsResponse.json();
         setComments(commentsData.comments || []);
-
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to load post or comments.");
@@ -79,13 +74,11 @@ const ViewPost: React.FC = () => {
         body: JSON.stringify({
           PostID: postId,
           Content: newComment,
-          UserID: "12345-abcde", // Replace with actual user ID from authentication
+          UserID: "12345-abcde",
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to post comment.");
-      }
+      if (!response.ok) throw new Error("Failed to post comment.");
 
       const newCommentData = {
         CommentID: crypto.randomUUID(),
@@ -124,7 +117,11 @@ const ViewPost: React.FC = () => {
   };
 
   return (
-    <MDBContainer>
+    <MDBContainer className="mt-3">
+      <MDBBtn color="light" onClick={() => navigate(-1)} className="mb-3">
+        <MDBIcon fas icon="arrow-left" /> Back
+      </MDBBtn>
+
       {loading && <p>Loading post...</p>}
       {error && <p className="text-danger">{error}</p>}
 

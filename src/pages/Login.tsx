@@ -15,7 +15,7 @@ const Login: React.FC = () => {
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const accessToken = tokens?.accessToken;
     if (accessToken) {
-      navigate("/home");
+      navigate("/profile");
     }
   }, [navigate]);
 
@@ -53,7 +53,7 @@ const Login: React.FC = () => {
         localStorage.setItem("authTokens", JSON.stringify(authTokens));
         console.log("Stored authTokens:", authTokens);
         setLoading(false);
-        navigate("/home");
+        navigate("/profile");
       },
       onFailure: (err) => {
         console.error("Login error:", err);

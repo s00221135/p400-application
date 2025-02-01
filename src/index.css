@@ -3,39 +3,25 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
+  /* Keep contrast in both light and dark modes */
+  color: #213547;
+  background-color: #ffffff;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  display: block; /* Prevent unwanted centering issues */
   min-width: 320px;
   min-height: 100vh;
+  background-color: #f8f9fa; /* Light gray to prevent blending */
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 2.5em;
   line-height: 1.1;
 }
 
+/* ✅ Fix: Make sure buttons have proper contrast */
 button,
 .MDBBtn {
   border-radius: 8px;
@@ -44,53 +30,39 @@ button,
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
-  transform: scale(1); /* Ensure the default scale is 1 */
 }
 
-button:hover,
-.MDBBtn:hover {
-  border-color: #646cff;
-}
-
-button:focus,
-button:focus-visible,
-.MDBBtn:focus,
-.MDBBtn:focus-visible {
-  outline: none;
-  box-shadow: none;
-}
-
-button:active,
-.MDBBtn:active {
-  transform: scale(1) !important; /* Prevent resizing on click */
-  transition: none !important; /* Disable any transition during click */
-}
-
-/* Apply these rules globally */
-.no-expand,
-.no-expand:hover,
-.no-expand:active {
-  transition: none !important; /* Disable transitions for specific buttons */
-  transform: none !important; /* Prevent scaling completely */
-}
-
-
-/* Light Mode Adjustments */
-@media (prefers-color-scheme: light) {
+/* ✅ Ensure buttons have proper contrast in dark mode */
+@media (prefers-color-scheme: dark) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-
-  a:hover {
-    color: #747bff;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #242424;
   }
 
   button,
   .MDBBtn {
-    background-color: #f9f9f9;
+    background-color: #333;
+    color: white;
   }
+
+  a {
+    color: #ffffff;
+  }
+
+  a:hover {
+    color: #ddddff;
+  }
+}
+
+/* ✅ Fix: Prevent buttons from interfering with layouts */
+button:active,
+.MDBBtn:active {
+  transform: none !important; /* Ensure buttons do not resize on click */
+}
+
+/* ✅ Fix: Ensure content spacing works properly */
+.no-expand {
+  transition: none !important;
 }
