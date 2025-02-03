@@ -40,6 +40,7 @@ const SocialFeed: React.FC = () => {
   const [selectedRadius, setSelectedRadius] = useState<number>(500); // Default radius
   const [error, setError] = useState<string | null>(null);
 
+  // Request User Location on mount
   useEffect(() => {
     requestLocation();
   }, []);
@@ -55,17 +56,22 @@ const SocialFeed: React.FC = () => {
         console.log("✅ Location granted:", lat, lon);
         fetchPosts(lat, lon, selectedRadius);
       },
-      (error) => {
-        console.warn("⚠️ Location access denied:", error);
+      (locationError) => {
+        console.warn("⚠️ Location access denied:", locationError);
         setError("⚠️ Location access denied. Cannot filter posts by proximity.");
-        fetchPosts(null, null, selectedRadius); // Fetch all posts if location is denied
+        // If user denies permission, still fetch all posts (no lat/lon)
+        fetchPosts(null, null, selectedRadius);
       },
       { enableHighAccuracy: true }
     );
   };
 
-  // ✅ Fetch Posts Based on User Location & Radius
-  const fetchPosts = async (lat: number | null, lon: number | null, radius: number) => {
+  // ✅ Fetch Posts Based on user location & radius
+  const fetchPosts = async (
+    lat: number | null,
+    lon: number | null,
+    radius: number
+  ) => {
     try {
       let url = `${API_BASE_URL}/get-posts?radius=${radius}`;
       if (lat !== null && lon !== null) {
@@ -74,14 +80,14 @@ const SocialFeed: React.FC = () => {
 
       const response = await fetch(url);
       const data = await response.json();
-      setPosts(data.posts);
-    } catch (error) {
-      console.error("🚨 Error fetching posts:", error);
+      setPosts(data.posts || []);
+    } catch (fetchError) {
+      console.error("🚨 Error fetching posts:", fetchError);
       setError("Failed to load posts.");
     }
   };
 
-  // ✅ Handle Likes (Fetch updated like count from API)
+  // ✅ Handle Likes
   const handleLike = async (postId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/like-post`, {
@@ -91,12 +97,13 @@ const SocialFeed: React.FC = () => {
       });
 
       if (response.ok) {
-        fetchPosts(latitude, longitude, selectedRadius); // Re-fetch posts to get the updated count
+        // Re-fetch posts to get updated like count
+        fetchPosts(latitude, longitude, selectedRadius);
       } else {
         console.error("🚨 Error updating likes:", await response.text());
       }
-    } catch (error) {
-      console.error("🚨 Error liking post:", error);
+    } catch (likeError) {
+      console.error("🚨 Error liking post:", likeError);
     }
   };
 
@@ -105,106 +112,113 @@ const SocialFeed: React.FC = () => {
     setSelectedRadius(radius);
     if (latitude !== null && longitude !== null) {
       fetchPosts(latitude, longitude, radius);
+    } else {
+      // If user denied location, just fetch all with the new radius
+      fetchPosts(null, null, radius);
     }
   };
 
   return (
     <>
+      {/* Top Navigation (Navbar) */}
       <Navigation />
 
-      {/* ✅ Fixed Header for Buttons */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          backgroundColor: "#fff",
-          zIndex: 1000,
-          padding: "10px 15px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "1px solid #ccc",
-          boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
-          height: "60px",
-        }}
-      >
-        <MDBBtn color="light" onClick={() => navigate(-1)}>
-          <MDBIcon fas icon="arrow-left" /> Back
-        </MDBBtn>
+      {/* Container for the entire page content */}
+      <MDBContainer fluid className="py-4 px-3">
+        {/* Action buttons row (mobile-first) */}
+        <MDBRow className="g-3 mb-3" style={{ marginTop: "56px" }}>
+          {/* 'Back' button */}
+          <MDBCol xs="12" sm="4" md="4">
+            <MDBBtn color="light" block onClick={() => navigate(-1)}>
+              <MDBIcon fas icon="arrow-left" className="me-2" />
+              Back
+            </MDBBtn>
+          </MDBCol>
 
-        <MDBDropdown group>
-          <MDBDropdownToggle color="info">
-            Viewing Posts in {selectedRadius}m Radius
-          </MDBDropdownToggle>
-          <MDBDropdownMenu>
-            {geofenceOptions.map((radius) => (
-              <MDBDropdownItem key={radius} onClick={() => handleRadiusChange(radius)}>
-                {radius}m
-              </MDBDropdownItem>
-            ))}
-          </MDBDropdownMenu>
-        </MDBDropdown>
-
-        <MDBBtn color="primary" onClick={() => navigate("/add-post")}>
-          <MDBIcon fas icon="plus" /> Create Post
-        </MDBBtn>
-      </div>
-
-      {/* ✅ Scrollable Post Feed (with padding to prevent overlap) */}
-      <MDBContainer
-        className="mt-5"
-        style={{
-          paddingTop: "80px", // Prevent content from being hidden under fixed header
-          overflowY: "auto",
-          height: "calc(100vh - 60px)", // Ensure it fills remaining height
-        }}
-      >
-        <MDBRow className="justify-content-center">
-          <MDBCol md="8">
-            {error && (
-              <>
-                <p className="text-danger">{error}</p>
-                <MDBBtn color="info" onClick={requestLocation}>
-                  Retry Location Access
-                </MDBBtn>
-              </>
-            )}
-
-            {/* ✅ Posts Feed (Scrollable) */}
-            <div style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
-              {posts.length === 0 && !error ? (
-                <p className="text-center text-muted">No posts found in your area.</p>
-              ) : (
-                posts.map((post) => (
-                  <MDBCard
-                    key={post.PostID}
-                    className="mb-3"
-                    onClick={() => navigate(`/view-post/${post.PostID}`)}
-                    style={{ cursor: "pointer" }}
+          {/* Radius dropdown */}
+          <MDBCol xs="12" sm="4" md="4">
+            <MDBDropdown group className="w-100">
+              <MDBDropdownToggle color="info" className="w-100 text-truncate">
+                Viewing Posts in {selectedRadius}m Radius
+              </MDBDropdownToggle>
+              <MDBDropdownMenu>
+                {geofenceOptions.map((radius) => (
+                  <MDBDropdownItem
+                    key={radius}
+                    onClick={() => handleRadiusChange(radius)}
                   >
-                    <MDBCardBody>
-                      <MDBCardTitle>{post.UserName}</MDBCardTitle>
-                      <MDBCardText>{post.Content}</MDBCardText>
-                      <MDBCardText>
-                        <small>📍 Visible within {post.GeofenceRadius}m</small>
-                      </MDBCardText>
-                      <MDBBtn
-                        color="danger"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLike(post.PostID);
-                        }}
-                      >
-                        ❤️ {post.Likes}
-                      </MDBBtn>
-                    </MDBCardBody>
-                  </MDBCard>
-                ))
-              )}
-            </div>
+                    {radius}m
+                  </MDBDropdownItem>
+                ))}
+              </MDBDropdownMenu>
+            </MDBDropdown>
+          </MDBCol>
+
+          {/* Create Post button */}
+          <MDBCol xs="12" sm="4" md="4">
+            <MDBBtn
+              color="primary"
+              block
+              onClick={() => navigate("/add-post")}
+            >
+              <MDBIcon fas icon="plus" className="me-2" />
+              Create Post
+            </MDBBtn>
+          </MDBCol>
+        </MDBRow>
+
+        {/* Error / Retry location */}
+        {error && (
+          <MDBRow className="mb-3">
+            <MDBCol>
+              <div className="text-danger mb-2">{error}</div>
+              <MDBBtn color="info" onClick={requestLocation}>
+                Retry Location Access
+              </MDBBtn>
+            </MDBCol>
+          </MDBRow>
+        )}
+
+        {/* Post feed */}
+        <MDBRow className="justify-content-center">
+          <MDBCol xs="12" md="8">
+            {posts.length === 0 && !error ? (
+              <p className="text-center text-muted">
+                No posts found in your area.
+              </p>
+            ) : (
+              posts.map((post) => (
+                <MDBCard
+                key={post.PostID}
+                className="mb-3"
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/view-post/${post.PostID}`)}
+              >
+                <MDBCardBody>
+                  <MDBCardTitle>{post.UserName}</MDBCardTitle>
+                  <MDBCardText>{post.Content}</MDBCardText>
+                  <MDBCardText>
+                    <small>📍 Visible within {post.GeofenceRadius}m</small>
+                  </MDBCardText>
+              
+                  {/* Improved Like Button */}
+                  <MDBBtn
+                    outline
+                    color="danger"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent card click
+                      handleLike(post.PostID);
+                    }}
+                  >
+                    <MDBIcon fas icon="heart" className="me-1" />
+                    {post.Likes}
+                  </MDBBtn>
+                </MDBCardBody>
+              </MDBCard>
+              
+              ))
+            )}
           </MDBCol>
         </MDBRow>
       </MDBContainer>

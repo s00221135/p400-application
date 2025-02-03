@@ -16,9 +16,9 @@ const Login: React.FC = () => {
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const accessToken = tokens?.accessToken;
 
-    // If we already have a token in sessionStorage, navigate directly to profile
+  
     if (accessToken) {
-      navigate("/profile");
+      navigate("/home");
     }
   }, [navigate]);
 
@@ -59,7 +59,7 @@ const Login: React.FC = () => {
         console.log("Stored authTokens in sessionStorage:", authTokens);
 
         setLoading(false);
-        navigate("/profile");
+        navigate("/home");
       },
       onFailure: (err) => {
         console.error("Login error:", err);
