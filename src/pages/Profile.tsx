@@ -1,4 +1,3 @@
-// src/pages/Profile.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -45,7 +44,8 @@ const Profile: React.FC = () => {
   // Fetch user data on component mount
   useEffect(() => {
     const fetchUser = async () => {
-      const tokensString = localStorage.getItem("authTokens");
+      // Use sessionStorage instead of localStorage
+      const tokensString = sessionStorage.getItem("authTokens");
       const tokens = tokensString ? JSON.parse(tokensString) : null;
       const accessToken = tokens?.accessToken;
       const userID = tokens?.userID;
@@ -57,21 +57,24 @@ const Profile: React.FC = () => {
       }
 
       try {
-        const response = await fetch("https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${accessToken}`,
-          },
-          // Send the userID in the body so the Lambda can find the record
-          body: JSON.stringify({ UserID: userID }),
-        });
+        const response = await fetch(
+          "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            // Send the userID in the body so the Lambda can find the record
+            body: JSON.stringify({ UserID: userID }),
+          }
+        );
 
         console.log("API Response Status:", response.status);
 
         if (response.status === 401) {
           alert("Session expired. Please log in again.");
-          localStorage.removeItem("authTokens");
+          sessionStorage.removeItem("authTokens");
           navigate("/");
           return;
         }
@@ -103,7 +106,6 @@ const Profile: React.FC = () => {
     fetchUser();
   }, [navigate]);
 
-
   // Open edit modal and prefill with current user data
   const openEditModal = () => {
     setEditedUser(user);
@@ -131,24 +133,30 @@ const Profile: React.FC = () => {
   // Save the edits by calling the update-user endpoint
   const saveEdits = async () => {
     if (!editedUser) return;
-    const tokensString = localStorage.getItem("authTokens");
+
+    const tokensString = sessionStorage.getItem("authTokens");
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const accessToken = tokens?.accessToken;
+
     if (!accessToken) {
       alert("No valid session found. Please log in.");
       navigate("/");
       return;
     }
+
     try {
-      const response = await fetch("https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/update-user", {
-        method: "PUT", // Ensure this matches your API Gateway method for update
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        // Send the entire editedUser object (which should include UserID)
-        body: JSON.stringify(editedUser),
-      });
+      const response = await fetch(
+        "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/update-user",
+        {
+          method: "PUT", // Ensure this matches your API Gateway method for update
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          // Send the entire editedUser object (which should include UserID)
+          body: JSON.stringify(editedUser),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -158,7 +166,9 @@ const Profile: React.FC = () => {
 
       const updatedData = await response.json();
       console.log("Updated User Data:", updatedData);
-      // Adjust according to your Lambda response structure. Here we expect an "UpdatedItem" field.
+
+      // Adjust according to your Lambda response structure.
+      // Example assumes it might return "UpdatedItem" or the entire user object directly.
       setUser(updatedData.UpdatedItem || updatedData);
       setEditModalOpen(false);
     } catch (error) {
@@ -169,7 +179,10 @@ const Profile: React.FC = () => {
 
   if (loading) {
     return (
-      <MDBContainer className="d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
+      <MDBContainer
+        className="d-flex justify-content-center align-items-center"
+        style={{ minHeight: "100vh" }}
+      >
         <MDBSpinner grow color="primary" />
       </MDBContainer>
     );
@@ -181,7 +194,6 @@ const Profile: React.FC = () => {
 
   return (
     <>
-      {/* Render the Navigation header */}
       <Navigation />
 
       <MDBContainer className="mt-5">
@@ -193,7 +205,6 @@ const Profile: React.FC = () => {
                   <MDBCol>
                     <MDBCardTitle>Profile</MDBCardTitle>
                   </MDBCol>
-               
                 </MDBRow>
 
                 <MDBRow>
@@ -213,7 +224,8 @@ const Profile: React.FC = () => {
                       <strong>Area of Study:</strong> {user.AreaOfStudy}
                     </MDBCardText>
                     <MDBCardText className="text-start">
-                      <strong>Created At:</strong> {new Date(user.CreatedAt).toLocaleString()}
+                      <strong>Created At:</strong>{" "}
+                      {new Date(user.CreatedAt).toLocaleString()}
                     </MDBCardText>
                   </MDBCol>
                 </MDBRow>
@@ -223,7 +235,8 @@ const Profile: React.FC = () => {
                 <MDBRow className="mb-2">
                   <MDBCol>
                     <MDBCardText className="text-start">
-                      <strong>Do Not Disturb:</strong> {user.DoNotDisturb ? "Active" : "Off"}
+                      <strong>Do Not Disturb:</strong>{" "}
+                      {user.DoNotDisturb ? "Active" : "Off"}
                     </MDBCardText>
                   </MDBCol>
                 </MDBRow>
@@ -241,31 +254,52 @@ const Profile: React.FC = () => {
         </MDBRow>
       </MDBContainer>
 
-      {/* Edit Modal */}
       {editedUser && (
-        <MDBModal open={editModalOpen} setopen={setEditModalOpen}>
+        <MDBModal tabIndex="-1" show={editModalOpen} setShow={setEditModalOpen}>
           <MDBModalDialog>
             <MDBModalContent>
               <MDBModalHeader>
                 <MDBModalTitle>Edit Profile</MDBModalTitle>
-                <MDBBtn className="btn-close" color="none" onClick={closeEditModal}></MDBBtn>
+                <MDBBtn
+                  className="btn-close"
+                  color="none"
+                  onClick={closeEditModal}
+                ></MDBBtn>
               </MDBModalHeader>
               <MDBModalBody>
                 <div className="mb-3">
                   <label>Name</label>
-                  <MDBInput type="text" name="Name" value={editedUser.Name} onChange={handleEditChange} />
+                  <MDBInput
+                    type="text"
+                    name="Name"
+                    value={editedUser.Name}
+                    onChange={handleEditChange}
+                  />
                 </div>
                 <div className="mb-3">
                   <label>College</label>
-                  <MDBInput type="text" name="College" value={editedUser.College} onChange={handleEditChange} />
+                  <MDBInput
+                    type="text"
+                    name="College"
+                    value={editedUser.College}
+                    onChange={handleEditChange}
+                  />
                 </div>
                 <div className="mb-3">
                   <label>Area of Study</label>
-                  <MDBInput type="text" name="AreaOfStudy" value={editedUser.AreaOfStudy} onChange={handleEditChange} />
+                  <MDBInput
+                    type="text"
+                    name="AreaOfStudy"
+                    value={editedUser.AreaOfStudy}
+                    onChange={handleEditChange}
+                  />
                 </div>
                 <div className="mb-3">
                   <label>Do Not Disturb</label>
-                  <MDBBtn color={editedUser.DoNotDisturb ? "success" : "secondary"} onClick={handleToggleDND}>
+                  <MDBBtn
+                    color={editedUser.DoNotDisturb ? "success" : "secondary"}
+                    onClick={handleToggleDND}
+                  >
                     {editedUser.DoNotDisturb ? "Active" : "Off"}
                   </MDBBtn>
                 </div>

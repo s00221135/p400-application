@@ -11,9 +11,12 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const tokensString = localStorage.getItem("authTokens");
+    // Use sessionStorage instead of localStorage
+    const tokensString = sessionStorage.getItem("authTokens");
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const accessToken = tokens?.accessToken;
+
+    // If we already have a token in sessionStorage, navigate directly to profile
     if (accessToken) {
       navigate("/profile");
     }
@@ -50,8 +53,11 @@ const Login: React.FC = () => {
           userID,
           username,
         };
-        localStorage.setItem("authTokens", JSON.stringify(authTokens));
-        console.log("Stored authTokens:", authTokens);
+
+        // Store tokens in sessionStorage
+        sessionStorage.setItem("authTokens", JSON.stringify(authTokens));
+        console.log("Stored authTokens in sessionStorage:", authTokens);
+
         setLoading(false);
         navigate("/profile");
       },
