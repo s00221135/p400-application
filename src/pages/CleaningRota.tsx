@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Navigation from "../components/Navigation"; // Adjust path if needed
+import Navigation from "../components/Navigation";
 import {
   MDBContainer,
   MDBRow,
@@ -18,35 +18,36 @@ import {
   MDBCheckbox,
 } from "mdb-react-ui-kit";
 
-// Adjust to your actual endpoints
-const API_BASE_URL = "https://nlqi44a390.execute-api.eu-west-1.amazonaws.com/dev";
-const HOUSEHOLD_ID = "house-001"; // Replace with actual HouseholdID or fetch from localStorage/Cognito
+// Two different base URLs because tasks and household-users are on different API IDs:
+const TASKS_BASE_URL = "https://nlqi44a390.execute-api.eu-west-1.amazonaws.com/dev";
+const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev";
+
+// Replace or fetch this from localStorage/sessionStorage in your real app:
+const HOUSEHOLD_ID = "house-001";
 
 interface Task {
   TaskID: string;
   Title: string;
-  AssignedTo: string;
+  AssignedTo: string; // We'll store the user's ID here
   Frequency: string;
   DueDate: string;
   Completed: boolean;
 }
 
-// Example shape for a household user
 interface HouseholdUser {
   UserID: string;
   Name: string;
   Email?: string;
-  // Add other fields as needed
+  // Additional fields if needed
 }
 
 const CleaningRota: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [householdUsers, setHouseholdUsers] = useState<HouseholdUser[]>([]);
-
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal-related states
+  // Modal states
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
@@ -60,27 +61,27 @@ const CleaningRota: React.FC = () => {
   });
 
   /* ----------------------------------
-   * 1) Fetch Tasks from API
+   * 1) Fetch Tasks (using TASKS_BASE_URL)
    * ---------------------------------- */
   const fetchTasks = async () => {
     setLoading(true);
     setError(null);
     try {
-      const url = `${API_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(
+      const url = `${TASKS_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(
         HOUSEHOLD_ID
       )}`;
       console.log("📡 Fetching tasks from:", url);
 
       const response = await fetch(url);
       const textResponse = await response.text();
-      console.log("✅ RAW API Response:", textResponse);
+      console.log("✅ RAW tasks response:", textResponse);
 
       let data;
       try {
         data = JSON.parse(textResponse);
       } catch (e) {
-        console.error("🚨 JSON Parse Error:", e);
-        setError("Invalid API response format.");
+        console.error("🚨 JSON Parse Error (tasks):", e);
+        setError("Invalid tasks API response format.");
         return;
       }
 
@@ -103,24 +104,27 @@ const CleaningRota: React.FC = () => {
   };
 
   /* ----------------------------------
-   * 2) Fetch Household Users
+   * 2) Fetch Household Users (using USERS_BASE_URL)
    * ---------------------------------- */
   const fetchHouseholdUsers = async () => {
     try {
-      // Example endpoint: GET /household-users?HouseholdID=house-001
-      const url = `${API_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(
+      const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(
         HOUSEHOLD_ID
       )}`;
+      console.log("📡 Fetching household users from:", url);
+
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error("Failed to fetch household users");
+        throw new Error("Failed to fetch household users (403 or other error)");
       }
 
       const data = await response.json();
+      console.log("✅ RAW users response:", data);
+
       if (Array.isArray(data.users)) {
         setHouseholdUsers(data.users);
       } else {
-        console.warn("No 'users' array found in response");
+        console.warn("No 'users' array found in user response");
       }
     } catch (err) {
       console.error("🚨 Error fetching household users:", err);
@@ -128,7 +132,7 @@ const CleaningRota: React.FC = () => {
   };
 
   /* ----------------------------------
-   * 3) useEffect: Load tasks + users
+   * 3) useEffect: Load tasks + users on mount
    * ---------------------------------- */
   useEffect(() => {
     fetchTasks();
@@ -150,8 +154,8 @@ const CleaningRota: React.FC = () => {
 
     const requestMethod = editMode ? "PUT" : "POST";
     const requestUrl = editMode
-      ? `${API_BASE_URL}/tasks/${currentTask?.TaskID}`
-      : `${API_BASE_URL}/tasks`;
+      ? `${TASKS_BASE_URL}/tasks/${currentTask?.TaskID}`
+      : `${TASKS_BASE_URL}/tasks`;
 
     try {
       const response = await fetch(requestUrl, {
@@ -164,9 +168,7 @@ const CleaningRota: React.FC = () => {
       });
 
       if (response.ok) {
-        // refresh tasks
         fetchTasks();
-        // close modal
         setModalOpen(false);
       } else {
         alert("Failed to save task.");
@@ -185,7 +187,7 @@ const CleaningRota: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/tasks/${taskID}?HouseholdID=${HOUSEHOLD_ID}`,
+        `${TASKS_BASE_URL}/tasks/${taskID}?HouseholdID=${HOUSEHOLD_ID}`,
         {
           method: "DELETE",
         }
@@ -208,7 +210,7 @@ const CleaningRota: React.FC = () => {
   const toggleTaskCompletion = async (task: Task) => {
     try {
       const updatedTask = { ...task, Completed: !task.Completed };
-      const response = await fetch(`${API_BASE_URL}/tasks/${task.TaskID}`, {
+      const response = await fetch(`${TASKS_BASE_URL}/tasks/${task.TaskID}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ HouseholdID: HOUSEHOLD_ID, ...updatedTask }),
@@ -242,6 +244,7 @@ const CleaningRota: React.FC = () => {
               <MDBBtn
                 color="primary"
                 onClick={() => {
+                  console.log("Opening modal for Add Task");
                   setEditMode(false);
                   setNewTask({
                     TaskID: "",
@@ -265,66 +268,79 @@ const CleaningRota: React.FC = () => {
             {tasks.length === 0 && !loading ? (
               <p className="text-center text-muted">Nothing to do yet...</p>
             ) : (
-              tasks.map((task) => (
-                <MDBCard
-                  key={task.TaskID}
-                  className={`mb-3 ${task.Completed ? "bg-light" : ""}`}
-                >
-                  <MDBCardBody>
-                    <h5 className="fw-bold">{task.Title}</h5>
-                    <p>
-                      <strong>Assigned To:</strong> {task.AssignedTo}
-                    </p>
-                    <p>
-                      <strong>Frequency:</strong> {task.Frequency}
-                    </p>
-                    <p>
-                      <strong>Due Date:</strong> {task.DueDate}
-                    </p>
+              tasks.map((task) => {
+                const assignedUser = householdUsers.find(
+                  (u) => u.UserID === task.AssignedTo
+                );
+                const displayAssigned = assignedUser
+                  ? assignedUser.Name
+                  : task.AssignedTo;
+                return (
+                  <MDBCard
+                    key={task.TaskID}
+                    className={`mb-3 ${task.Completed ? "bg-light" : ""}`}
+                  >
+                    <MDBCardBody>
+                      <h5 className="fw-bold">{task.Title}</h5>
+                      <p>
+                        <strong>Assigned To:</strong> {displayAssigned}
+                      </p>
+                      <p>
+                        <strong>Frequency:</strong> {task.Frequency}
+                      </p>
+                      <p>
+                        <strong>Due Date:</strong> {task.DueDate}
+                      </p>
 
-                    {/* Task Completed Checkbox */}
-                    <MDBCheckbox
-                      name="completed"
-                      checked={task.Completed}
-                      onChange={() => toggleTaskCompletion(task)}
-                      label="Mark as Completed"
-                    />
+                      <MDBCheckbox
+                        name="completed"
+                        checked={task.Completed}
+                        onChange={() => toggleTaskCompletion(task)}
+                        label="Mark as Completed"
+                      />
 
-                    <MDBRow className="mt-2">
-                      <MDBCol>
-                        <MDBBtn
-                          color="info"
-                          size="sm"
-                          onClick={() => {
-                            setEditMode(true);
-                            setNewTask(task);
-                            setCurrentTask(task);
-                            setModalOpen(true);
-                          }}
-                        >
-                          Edit
-                        </MDBBtn>
-                      </MDBCol>
-                      <MDBCol>
-                        <MDBBtn
-                          color="danger"
-                          size="sm"
-                          onClick={() => deleteTask(task.TaskID)}
-                        >
-                          Delete
-                        </MDBBtn>
-                      </MDBCol>
-                    </MDBRow>
-                  </MDBCardBody>
-                </MDBCard>
-              ))
+                      <MDBRow className="mt-2">
+                        <MDBCol>
+                          <MDBBtn
+                            color="info"
+                            size="sm"
+                            onClick={() => {
+                              console.log("Opening modal for Edit Task");
+                              setEditMode(true);
+                              setNewTask(task);
+                              setCurrentTask(task);
+                              setModalOpen(true);
+                            }}
+                          >
+                            Edit
+                          </MDBBtn>
+                        </MDBCol>
+                        <MDBCol>
+                          <MDBBtn
+                            color="danger"
+                            size="sm"
+                            onClick={() => deleteTask(task.TaskID)}
+                          >
+                            Delete
+                          </MDBBtn>
+                        </MDBCol>
+                      </MDBRow>
+                    </MDBCardBody>
+                  </MDBCard>
+                );
+              })
             )}
           </MDBCol>
         </MDBRow>
       </MDBContainer>
 
       {/* Add/Edit Task Modal */}
-      <MDBModal show={modalOpen} setShow={setModalOpen} tabIndex="-1">
+      {/**
+       * If you're using mdb-react-ui-kit v6+, use show and setShow.
+       * For older versions, use open and setOpen.
+       * Here we assume you need open/setOpen.
+       */}
+      <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex="-1">
         <MDBModalDialog>
           <MDBModalContent>
             <MDBModalHeader>
@@ -337,7 +353,6 @@ const CleaningRota: React.FC = () => {
                 onClick={() => setModalOpen(false)}
               ></MDBBtn>
             </MDBModalHeader>
-
             <MDBModalBody>
               <MDBInput
                 label="Task Title"
@@ -348,8 +363,7 @@ const CleaningRota: React.FC = () => {
                 }
                 className="mb-3"
               />
-
-              {/* Replace AssignedTo input with a dropdown */}
+              {/* AssignedTo Dropdown */}
               <div className="mb-3">
                 <label className="form-label">Assigned To</label>
                 <select
@@ -361,13 +375,12 @@ const CleaningRota: React.FC = () => {
                 >
                   <option value="">-- Select a Housemate --</option>
                   {householdUsers.map((user) => (
-                    <option key={user.UserID} value={user.Name}>
+                    <option key={user.UserID} value={user.UserID}>
                       {user.Name}
                     </option>
                   ))}
                 </select>
               </div>
-
               <MDBInput
                 label="Frequency"
                 type="text"
@@ -387,7 +400,6 @@ const CleaningRota: React.FC = () => {
                 className="mb-3"
               />
             </MDBModalBody>
-
             <MDBModalFooter>
               <MDBBtn color="secondary" onClick={() => setModalOpen(false)}>
                 Cancel
