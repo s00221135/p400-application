@@ -11,8 +11,8 @@ const CreateSpace: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Retrieve tokens from sessionStorage in the same way as your Profile page
-    const tokensString = sessionStorage.getItem("authTokens");
+    // Check for auth tokens in sessionStorage or localStorage
+    const tokensString = sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const accessToken = tokens?.accessToken;
     const uID = tokens?.userID;
@@ -47,7 +47,7 @@ const CreateSpace: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             HouseholdName: householdName,
-            UserID: userID, // <--- Passing the user ID here
+            UserID: userID, // Passing the user ID here
           }),
         }
       );
@@ -55,8 +55,8 @@ const CreateSpace: React.FC = () => {
       const data = await response.json();
       if (response.ok) {
         setJoinCode(data.JoinCode);
-        // Optionally store the new household ID in sessionStorage if needed
-        // sessionStorage.setItem("HouseholdID", data.HouseholdID);
+        // Optionally store the new household ID in sessionStorage/localStorage if needed
+        // localStorage.setItem("HouseholdID", data.HouseholdID);
       } else {
         alert("Error: " + data.message);
       }
@@ -73,9 +73,7 @@ const CreateSpace: React.FC = () => {
       className="d-flex justify-content-center align-items-center"
       style={{ minHeight: "100vh" }}
     >
-      <div
-        style={{ padding: "20px", borderRadius: "8px", textAlign: "center" }}
-      >
+      <div style={{ padding: "20px", borderRadius: "8px", textAlign: "center" }}>
         <h1>Create New Household</h1>
         <MDBInput
           type="text"

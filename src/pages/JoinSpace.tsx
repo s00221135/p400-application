@@ -7,8 +7,8 @@ const JoinSpace: React.FC = () => {
   const [userID, setUserID] = useState<string | null>(null);
 
   useEffect(() => {
-    // Retrieve tokens from sessionStorage, similar to your Profile logic
-    const tokensString = sessionStorage.getItem("authTokens");
+    // Check for auth tokens in sessionStorage or localStorage
+    const tokensString = sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const accessToken = tokens?.accessToken;
     const uID = tokens?.userID;
@@ -60,7 +60,11 @@ const JoinSpace: React.FC = () => {
   };
 
   return (
-    <MDBContainer fluid className="d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
+    <MDBContainer
+      fluid
+      className="d-flex justify-content-center align-items-center"
+      style={{ minHeight: "100vh" }}
+    >
       <div style={{ padding: "20px", borderRadius: "8px", textAlign: "center" }}>
         <h1>Join a Household</h1>
         <MDBInput
