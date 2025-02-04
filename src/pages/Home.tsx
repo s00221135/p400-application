@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { MDBContainer, MDBBtn } from "mdb-react-ui-kit";
+import { MDBContainer, MDBCard, MDBCardBody, MDBCardTitle, MDBCardText, MDBBtn } from "mdb-react-ui-kit";
 import Navigation from "../components/Navigation";
 
-// Use the same API endpoint as join-household for retrieving the household name.
+// API endpoint for retrieving household name (same as join-household endpoint)
 const GET_HOUSEHOLD_NAME_API = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev/join-household";
 
 const Home: React.FC = () => {
+  // Default to "Your Household" until the API call updates it.
   const [householdName, setHouseholdName] = useState("Your Household");
 
   const handleNavigate = (path: string) => {
@@ -14,8 +15,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     // Retrieve tokens (UserID) and HouseholdID from storage
-    const tokensString =
-      sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
+    const tokensString = sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const userID = tokens?.userID;
     const storedHouseholdID = localStorage.getItem("HouseholdID");
@@ -56,54 +56,33 @@ const Home: React.FC = () => {
         fluid
         className="d-flex justify-content-center align-items-center"
         style={{
-          backgroundColor: "#f5f5f5",
+          background: "linear-gradient(135deg, #f5f7fa, #c3cfe2)",
           minHeight: "calc(100vh - 56px)",
-          padding: "20px",
+          padding: "20px"
         }}
       >
-        <div
-          style={{
-            backgroundColor: "#e0e0e0",
-            padding: "20px",
-            borderRadius: "8px",
-            maxWidth: "90%",
-            width: "100%",
-            textAlign: "center",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "1.8rem",
-              fontWeight: "bold",
-              marginBottom: "10px",
-            }}
-          >
-            Welcome to {householdName}!
-          </h1>
-          <h2
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: "bold",
-              marginBottom: "20px",
-            }}
-          >
-            Home
-          </h2>
-          <div style={{ marginBottom: "20px" }}>
-            <p style={{ fontSize: "1rem", marginBottom: "10px" }}>
-              <strong>Roommate Status:</strong> Fergal has "Do Not Disturb" on until 7 PM
-            </p>
-            <p style={{ fontSize: "1rem", marginBottom: "10px" }}>
-              <strong>Reserved Spaces:</strong> Living room reserved from 8 PM - 11 PM
-            </p>
-            <p style={{ fontSize: "1rem", marginBottom: "10px" }}>
-              <strong>Upcoming Tasks:</strong> Fergal's turn to take out the bins this week
-            </p>
-            <p style={{ fontSize: "1rem" }}>
-              <strong>Notifications:</strong> Electricity bill due in 3 days
-            </p>
-          </div>
-          <div style={{ marginBottom: "20px" }}>
+        <MDBCard style={{ maxWidth: "500px", width: "100%", borderRadius: "10px", boxShadow: "0 0 20px rgba(0,0,0,0.1)" }}>
+          <MDBCardBody className="text-center">
+            <MDBCardTitle style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "20px" }}>
+              Welcome to {householdName}!
+            </MDBCardTitle>
+            <MDBCardText style={{ fontSize: "1.3rem", marginBottom: "20px" }}>
+              Home
+            </MDBCardText>
+            <div style={{ textAlign: "left", marginBottom: "20px" }}>
+              <p style={{ fontSize: "1rem", marginBottom: "10px" }}>
+                <strong>Roommate Status:</strong> Fergal has "Do Not Disturb" on until 7 PM
+              </p>
+              <p style={{ fontSize: "1rem", marginBottom: "10px" }}>
+                <strong>Reserved Spaces:</strong> Living room reserved from 8 PM - 11 PM
+              </p>
+              <p style={{ fontSize: "1rem", marginBottom: "10px" }}>
+                <strong>Upcoming Tasks:</strong> Fergal's turn to take out the bins this week
+              </p>
+              <p style={{ fontSize: "1rem" }}>
+                <strong>Notifications:</strong> Electricity bill due in 3 days
+              </p>
+            </div>
             <MDBBtn
               color="dark"
               className="w-100"
@@ -112,8 +91,8 @@ const Home: React.FC = () => {
             >
               Social Feed
             </MDBBtn>
-          </div>
-        </div>
+          </MDBCardBody>
+        </MDBCard>
       </MDBContainer>
     </>
   );
