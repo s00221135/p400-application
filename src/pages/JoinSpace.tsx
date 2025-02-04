@@ -8,7 +8,8 @@ const JoinSpace: React.FC = () => {
 
   useEffect(() => {
     // Check for auth tokens in sessionStorage or localStorage
-    const tokensString = sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
+    const tokensString =
+      sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
     const tokens = tokensString ? JSON.parse(tokensString) : null;
     const accessToken = tokens?.accessToken;
     const uID = tokens?.userID;
@@ -47,6 +48,7 @@ const JoinSpace: React.FC = () => {
       if (response.ok) {
         // Save the household ID if needed
         localStorage.setItem("HouseholdID", data.HouseholdID);
+        // Use the correct property from your Lambda response: HouseholdName
         alert(`Welcome to ${data.HouseholdName}!`);
         window.location.href = "/home"; // Navigate to home
       } else {
