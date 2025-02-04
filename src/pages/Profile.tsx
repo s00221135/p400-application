@@ -255,67 +255,64 @@ const Profile: React.FC = () => {
       </MDBContainer>
 
       {editedUser && (
-        <MDBModal tabIndex="-1" show={editModalOpen} setShow={setEditModalOpen}>
-          <MDBModalDialog>
-            <MDBModalContent>
-              <MDBModalHeader>
-                <MDBModalTitle>Edit Profile</MDBModalTitle>
-                <MDBBtn
-                  className="btn-close"
-                  color="none"
-                  onClick={closeEditModal}
-                ></MDBBtn>
-              </MDBModalHeader>
-              <MDBModalBody>
-                <div className="mb-3">
-                  <label>Name</label>
-                  <MDBInput
-                    type="text"
-                    name="Name"
-                    value={editedUser.Name}
-                    onChange={handleEditChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label>College</label>
-                  <MDBInput
-                    type="text"
-                    name="College"
-                    value={editedUser.College}
-                    onChange={handleEditChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label>Area of Study</label>
-                  <MDBInput
-                    type="text"
-                    name="AreaOfStudy"
-                    value={editedUser.AreaOfStudy}
-                    onChange={handleEditChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label>Do Not Disturb</label>
-                  <MDBBtn
-                    color={editedUser.DoNotDisturb ? "success" : "secondary"}
-                    onClick={handleToggleDND}
-                  >
-                    {editedUser.DoNotDisturb ? "Active" : "Off"}
-                  </MDBBtn>
-                </div>
-              </MDBModalBody>
-              <MDBModalFooter>
-                <MDBBtn color="secondary" onClick={closeEditModal}>
-                  Cancel
-                </MDBBtn>
-                <MDBBtn color="primary" onClick={saveEdits}>
-                  Save Changes
-                </MDBBtn>
-              </MDBModalFooter>
-            </MDBModalContent>
-          </MDBModalDialog>
-        </MDBModal>
-      )}
+  <MDBModal open={editModalOpen} setOpen={setEditModalOpen} tabIndex="-1">
+    <MDBModalDialog>
+      <MDBModalContent>
+        <MDBModalHeader>
+          <MDBModalTitle>Edit Profile</MDBModalTitle>
+          <MDBBtn className="btn-close" color="none" onClick={closeEditModal}></MDBBtn>
+        </MDBModalHeader>
+        <MDBModalBody>
+          <div className="mb-3">
+            <label>Name</label>
+            <MDBInput
+              type="text"
+              name="Name"
+              value={editedUser.Name}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="mb-3">
+            <label>College</label>
+            <MDBInput
+              type="text"
+              name="College"
+              value={editedUser.College}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="mb-3">
+            <label>Area of Study</label>
+            <MDBInput
+              type="text"
+              name="AreaOfStudy"
+              value={editedUser.AreaOfStudy}
+              onChange={handleEditChange}
+            />
+          </div>
+          <div className="mb-3">
+            <label>Do Not Disturb</label>
+            <MDBBtn
+              color={editedUser.DoNotDisturb ? "success" : "secondary"}
+              onClick={handleToggleDND}
+            >
+              {editedUser.DoNotDisturb ? "Active" : "Off"}
+            </MDBBtn>
+          </div>
+        </MDBModalBody>
+        <MDBModalFooter>
+          <MDBBtn color="secondary" onClick={closeEditModal}>
+            Cancel
+          </MDBBtn>
+          <MDBBtn color="primary" onClick={saveEdits}>
+            Save Changes
+          </MDBBtn>
+        </MDBModalFooter>
+      </MDBModalContent>
+    </MDBModalDialog>
+  </MDBModal>
+)}
+
     </>
   );
 };

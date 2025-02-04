@@ -1,13 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MDBContainer, MDBInput, MDBBtn } from "mdb-react-ui-kit";
 
 const JoinSpace: React.FC = () => {
   const [joinCode, setJoinCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userID, setUserID] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Retrieve tokens from sessionStorage, similar to your Profile logic
+    const tokensString = sessionStorage.getItem("authTokens");
+    const tokens = tokensString ? JSON.parse(tokensString) : null;
+    const accessToken = tokens?.accessToken;
+    const uID = tokens?.userID;
+
+    // If no valid session, redirect
+    if (!accessToken || !uID) {
+      alert("No valid session found. Please log in.");
+      window.location.href = "/";
+      return;
+    }
+    setUserID(uID);
+  }, []);
 
   const handleJoinHousehold = async () => {
     if (!joinCode.trim()) {
       alert("Please enter a join code.");
+      return;
+    }
+    if (!userID) {
+      alert("No user ID found. Please log in.");
       return;
     }
 
@@ -18,14 +39,15 @@ const JoinSpace: React.FC = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ JoinCode: joinCode, UserID: "user123" }), // Replace with actual UserID
+          body: JSON.stringify({ JoinCode: joinCode, UserID: userID }),
         }
       );
 
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem("HouseholdID", data.HouseholdID); // Store Household ID
-        alert("Successfully joined household!");
+        // Save the household ID if needed
+        localStorage.setItem("HouseholdID", data.HouseholdID);
+        alert(`Welcome to ${data.HouseholdName}!`);
         window.location.href = "/home"; // Navigate to home
       } else {
         alert("Error: " + data.message);

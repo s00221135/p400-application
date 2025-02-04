@@ -16,7 +16,7 @@ interface RegisterFormData {
 async function createUserInDynamo(userData: any) {
   try {
     // Adjust the URL to match your API Gateway endpoint
-    const response = await fetch("https://mapox7awv0.execute-api.eu-west-1.amazonaws.com/dev/create-user", {
+    const response = await fetch("https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
