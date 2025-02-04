@@ -67,9 +67,7 @@ const CleaningRota: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const url = `${TASKS_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(
-        HOUSEHOLD_ID
-      )}`;
+      const url = `${TASKS_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
       console.log("📡 Fetching tasks from:", url);
 
       const response = await fetch(url);
@@ -90,7 +88,11 @@ const CleaningRota: React.FC = () => {
           console.warn("⚠️ No tasks found or incorrect format.");
           setTasks([]);
         } else {
-          setTasks(data.tasks);
+          // Sort tasks so that tasks not completed come first
+          const sortedTasks = [...data.tasks].sort((a: Task, b: Task) =>
+            a.Completed === b.Completed ? 0 : a.Completed ? 1 : -1
+          );
+          setTasks(sortedTasks);
         }
       } else {
         setError(data.message || "Failed to load tasks.");
@@ -108,9 +110,7 @@ const CleaningRota: React.FC = () => {
    * ---------------------------------- */
   const fetchHouseholdUsers = async () => {
     try {
-      const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(
-        HOUSEHOLD_ID
-      )}`;
+      const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
       console.log("📡 Fetching household users from:", url);
 
       const response = await fetch(url);
@@ -269,12 +269,11 @@ const CleaningRota: React.FC = () => {
               <p className="text-center text-muted">Nothing to do yet...</p>
             ) : (
               tasks.map((task) => {
+                // Lookup user name for display from householdUsers
                 const assignedUser = householdUsers.find(
                   (u) => u.UserID === task.AssignedTo
                 );
-                const displayAssigned = assignedUser
-                  ? assignedUser.Name
-                  : task.AssignedTo;
+                const displayAssigned = assignedUser ? assignedUser.Name : task.AssignedTo;
                 return (
                   <MDBCard
                     key={task.TaskID}
@@ -336,31 +335,24 @@ const CleaningRota: React.FC = () => {
 
       {/* Add/Edit Task Modal */}
       {/**
-       * If you're using mdb-react-ui-kit v6+, use show and setShow.
-       * For older versions, use open and setOpen.
-       * Here we assume you need open/setOpen.
+       * Adjust modal props based on your mdb-react-ui-kit version.
+       * For example, if you're using v6+, use show={modalOpen} setShow={setModalOpen}.
+       * If using an older version, use open={modalOpen} setOpen={setModalOpen}.
+       * Here we assume the older version with open/setOpen.
        */}
       <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex="-1">
         <MDBModalDialog>
           <MDBModalContent>
             <MDBModalHeader>
-              <MDBModalTitle>
-                {editMode ? "Edit Task" : "Add Task"}
-              </MDBModalTitle>
-              <MDBBtn
-                className="btn-close"
-                color="none"
-                onClick={() => setModalOpen(false)}
-              ></MDBBtn>
+              <MDBModalTitle>{editMode ? "Edit Task" : "Add Task"}</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setModalOpen(false)}></MDBBtn>
             </MDBModalHeader>
             <MDBModalBody>
               <MDBInput
                 label="Task Title"
                 type="text"
                 value={newTask.Title}
-                onChange={(e) =>
-                  setNewTask({ ...newTask, Title: e.target.value })
-                }
+                onChange={(e) => setNewTask({ ...newTask, Title: e.target.value })}
                 className="mb-3"
               />
               {/* AssignedTo Dropdown */}
@@ -369,9 +361,7 @@ const CleaningRota: React.FC = () => {
                 <select
                   className="form-select"
                   value={newTask.AssignedTo}
-                  onChange={(e) =>
-                    setNewTask({ ...newTask, AssignedTo: e.target.value })
-                  }
+                  onChange={(e) => setNewTask({ ...newTask, AssignedTo: e.target.value })}
                 >
                   <option value="">-- Select a Housemate --</option>
                   {householdUsers.map((user) => (
@@ -385,18 +375,14 @@ const CleaningRota: React.FC = () => {
                 label="Frequency"
                 type="text"
                 value={newTask.Frequency}
-                onChange={(e) =>
-                  setNewTask({ ...newTask, Frequency: e.target.value })
-                }
+                onChange={(e) => setNewTask({ ...newTask, Frequency: e.target.value })}
                 className="mb-3"
               />
               <MDBInput
                 label="Due Date"
                 type="date"
                 value={newTask.DueDate}
-                onChange={(e) =>
-                  setNewTask({ ...newTask, DueDate: e.target.value })
-                }
+                onChange={(e) => setNewTask({ ...newTask, DueDate: e.target.value })}
                 className="mb-3"
               />
             </MDBModalBody>
