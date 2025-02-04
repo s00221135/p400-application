@@ -32,9 +32,9 @@ const Navigation: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Logout function
+  // Logout function - remove tokens from sessionStorage and navigate to "/"
   const handleLogout = () => {
-    localStorage.removeItem("authTokens");
+    sessionStorage.removeItem("authTokens");
     navigate("/");
   };
 
@@ -56,9 +56,9 @@ const Navigation: React.FC = () => {
       pageTitle = "Profile";
       pageIcon = "user";
       break;
-      case "/social-feed":  
+    case "/social-feed":
       pageTitle = "Social Feed";
-      pageIcon = "user-group"; 
+      pageIcon = "user-group";
       break;
     default:
       pageTitle = "Home";
@@ -135,7 +135,7 @@ const Navigation: React.FC = () => {
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
-              <MDBNavbarLink href="/user-group" className={getActiveClass("/social-feed")}>
+              <MDBNavbarLink href="/social-feed" className={getActiveClass("/social-feed")}>
                 Social Feed
               </MDBNavbarLink>
             </MDBNavbarItem>
