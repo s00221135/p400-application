@@ -166,7 +166,7 @@ const Register: React.FC = () => {
           <p className="text-center" style={{ fontSize: "0.9rem" }}>
             Already have an account?{" "}
             <a
-              href="/login"
+              href="/"
               style={{
                 color: "#007bff",
                 textDecoration: "underline",
