@@ -1,13 +1,20 @@
-// src/pages/Confirm.tsx
 import React, { useState, useEffect } from "react";
 import { CognitoUser } from "amazon-cognito-identity-js";
 import UserPool from "../Cognito";
 import { useLocation, useNavigate } from "react-router-dom";
+import {
+  MDBContainer,
+  MDBCard,
+  MDBCardBody,
+  MDBCardTitle,
+  MDBInput,
+  MDBBtn,
+  MDBTypography
+} from "mdb-react-ui-kit";
 
 const Confirm: React.FC = () => {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
-
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -24,72 +31,60 @@ const Confirm: React.FC = () => {
   const handleConfirm = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Ensure email is present
     if (!email) {
       setMessage("Email is missing. Please register again.");
       return;
     }
 
-    // Create a CognitoUser object with the user’s email (username).
     const user = new CognitoUser({
       Username: email,
       Pool: UserPool,
     });
 
-    // Attempt to confirm registration with the code
     user.confirmRegistration(code, true, (err, result) => {
       if (err) {
         setMessage("Error confirming account: " + err.message);
         console.error("Confirm error:", err);
       } else {
-        console.log("Confirmation success:", result);
         setMessage("Account confirmed successfully!");
-
-        // Optionally, navigate to home after a short delay
+        // Navigate to setup-space after a short delay
         setTimeout(() => {
           navigate("/setup-space");
-        }, 2000); // 2-second delay
+        }, 2000);
       }
     });
   };
 
   return (
-    <div style={{ margin: "50px auto", maxWidth: "400px", textAlign: "center" }}>
-      <h2>Confirm Your Account</h2>
-      <p>Enter the confirmation code sent to your email.</p>
-      {/* Display the email for user reference */}
-      <p>
-        <strong>Email:</strong> {email}
-      </p>
-      <form onSubmit={handleConfirm}>
-        <div style={{ marginBottom: "20px" }}>
-          <label>Confirmation Code</label>
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            style={{ width: "100%", padding: "8px", marginTop: "5px" }}
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          style={{ padding: "10px 20px", cursor: "pointer" }}
-        >
-          Confirm
-        </button>
-      </form>
-      {message && (
-        <p
-          style={{
-            marginTop: "20px",
-            color: message.includes("successfully") ? "green" : "red",
-          }}
-        >
-          {message}
-        </p>
-      )}
-    </div>
+    <MDBContainer className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh" }}>
+      <MDBCard style={{ maxWidth: "400px", width: "100%" }} className="shadow">
+        <MDBCardBody className="p-4">
+          <MDBCardTitle className="text-center mb-4">Confirm Your Account</MDBCardTitle>
+          <p className="text-center">Enter the confirmation code sent to your email.</p>
+          <p className="text-center">
+            <strong>Email:</strong> {email}
+          </p>
+          <form onSubmit={handleConfirm}>
+            <MDBInput
+              label="Confirmation Code"
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+              className="mb-3"
+            />
+            <MDBBtn type="submit" color="primary" className="w-100 mb-3">
+              Confirm
+            </MDBBtn>
+          </form>
+          {message && (
+            <MDBTypography tag="p" className="text-center" style={{ color: message.includes("successfully") ? "green" : "red" }}>
+              {message}
+            </MDBTypography>
+          )}
+        </MDBCardBody>
+      </MDBCard>
+    </MDBContainer>
   );
 };
 
