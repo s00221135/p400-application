@@ -1,3 +1,4 @@
+// Navigation.tsx
 import React, { useEffect, useState } from "react";
 import {
   MDBNavbar,
@@ -32,7 +33,7 @@ const Navigation: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Logout function - remove tokens from sessionStorage and navigate to "/"
+  // Logout function – remove tokens from sessionStorage and navigate to "/"
   const handleLogout = () => {
     sessionStorage.removeItem("authTokens");
     navigate("/");
@@ -46,8 +47,9 @@ const Navigation: React.FC = () => {
       pageTitle = "Cleaning Rota";
       pageIcon = "broom";
       break;
-    case "/todo-list":
-      pageTitle = "To Do List";
+    case "/bills":
+      pageTitle = "Bills";
+      pageIcon = "file-invoice-dollar"; // Using FontAwesome icon for bills/invoice (adjust as needed)
       break;
     case "/reserve-space":
       pageTitle = "Reserve Space";
@@ -86,8 +88,8 @@ const Navigation: React.FC = () => {
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
-                <MDBNavbarLink href="/todo-list" className={getActiveClass("/todo-list")}>
-                  To Do List
+                <MDBNavbarLink href="/bills" className={getActiveClass("/bills")}>
+                  Bills
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
@@ -115,8 +117,8 @@ const Navigation: React.FC = () => {
         ) : (
           <MDBNavbarNav>
             <MDBNavbarItem>
-              <MDBNavbarLink href="/todo-list" className={getActiveClass("/todo-list")}>
-                To Do List
+              <MDBNavbarLink href="/bills" className={getActiveClass("/bills")}>
+                Bills
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
