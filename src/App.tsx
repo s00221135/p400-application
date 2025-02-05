@@ -16,6 +16,7 @@ import SocialFeed from "./pages/SocialFeed"; // New Social Feed Page
 import AddPost from "./pages/AddPost"; // New Page for Creating a Post
 import ViewPost from "./pages/ViewPost"; // New Page to View a Post
 import ReserveSharedSpace from "./pages/ReserveSpace";
+import BillSplittingPage from "./pages/Bills";
 
 const App: React.FC = () => {
   return (
@@ -32,6 +33,7 @@ const App: React.FC = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/confirm" element={<Confirm />} />
 <Route path="/reserve-space" element={<ReserveSharedSpace/>}/>
+<Route path="/bills" element={<BillSplittingPage />} />
           {/* Social Feed Routes */}
           <Route path="/social-feed" element={<SocialFeed />} /> {/* Main Feed */}
           <Route path="/add-post" element={<AddPost />} /> {/* Fix: No props passed */}
