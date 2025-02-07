@@ -1,6 +1,12 @@
 // src/pages/Register.tsx
 import React, { useState } from "react";
-import { MDBContainer, MDBInput, MDBBtn } from "mdb-react-ui-kit";
+import {
+  MDBContainer,
+  MDBCard,
+  MDBCardBody,
+  MDBInput,
+  MDBBtn,
+} from "mdb-react-ui-kit";
 import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 import { useNavigate } from "react-router-dom";
 import UserPool from "../Cognito";
@@ -15,17 +21,14 @@ interface RegisterFormData {
 // Helper to call your create-user API
 async function createUserInDynamo(userData: any) {
   try {
-    // Adjust the URL to match your API Gateway endpoint
     const response = await fetch("https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
     });
-
     if (!response.ok) {
       throw new Error("Failed to create user in Dynamo");
     }
-
     const data = await response.json();
     console.log("Created user in DynamoDB:", data);
   } catch (error) {
@@ -40,7 +43,6 @@ const Register: React.FC = () => {
     password: "",
     confirmPassword: "",
   });
-
   const navigate = useNavigate();
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,19 +86,18 @@ const Register: React.FC = () => {
             UserID: userId,
             Name: formData.name,
             Email: formData.email,
-            // Additional fields:
             CreatedAt: new Date().toISOString(),
             DoNotDisturb: false,
             HouseholdID: null,
             AreaOfStudy: "Unknown",
             College: "Unknown",
-            // Typically don't store real password in DB since Cognito manages it
+            // Note: We store a placeholder password since Cognito handles authentication.
             Password: "StoredInCognito",
           });
         }
 
-        // Navigate to the Confirm page and pass the email
-        navigate("/confirm", { state: { email: formData.email } });
+        // Pass both email and password to the Confirm page for automatic sign-in later
+        navigate("/confirm", { state: { email: formData.email, password: formData.password } });
       }
     });
   };
@@ -104,80 +105,72 @@ const Register: React.FC = () => {
   return (
     <MDBContainer
       fluid
-      className="d-flex justify-content-center align-items-center"
+      className="d-flex align-items-center justify-content-center"
       style={{
-        backgroundColor: "#f5f5f5",
         minHeight: "100vh",
-        padding: "20px",
+        background: "linear-gradient(135deg, #ece9e6, #ffffff)",
       }}
     >
-      <div
-        style={{
-          backgroundColor: "#e0e0e0",
-          padding: "20px",
-          borderRadius: "8px",
-          maxWidth: "400px",
-          width: "100%",
-          textAlign: "center",
-        }}
-      >
-        <h3 style={{ fontWeight: "bold", marginBottom: "20px" }}>Sign Up</h3>
-        <form onSubmit={handleSubmit}>
-          <MDBInput
-            type="text"
-            placeholder="Full Name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="mb-3"
-          />
-          <MDBInput
-            type="email"
-            placeholder="Email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="mb-3"
-          />
-          <MDBInput
-            type="password"
-            placeholder="Password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            className="mb-3"
-          />
-          <MDBInput
-            type="password"
-            placeholder="Confirm Password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            className="mb-3"
-          />
-          <MDBBtn
-            color="primary"
-            type="submit"
-            className="w-100"
-            style={{ marginBottom: "10px" }}
-          >
-            Register
-          </MDBBtn>
-          <p className="text-center" style={{ fontSize: "0.9rem" }}>
-            Already have an account?{" "}
-            <a
-              href="/"
-              style={{
-                color: "#007bff",
-                textDecoration: "underline",
-                cursor: "pointer",
-              }}
+      <MDBCard style={{ maxWidth: "400px", width: "100%", borderRadius: "10px", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+        <MDBCardBody className="p-4">
+          <div className="text-center mb-4">
+            <h1 style={{ fontWeight: "bold" }}>Flatchat</h1>
+            <h4 style={{ fontWeight: "bold", marginBottom: "20px" }}>Sign Up</h4>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <MDBInput
+              label="Full Name"
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="mb-3"
+              required
+            />
+            <MDBInput
+              label="Email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="mb-3"
+              required
+            />
+            <MDBInput
+              label="Password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="mb-3"
+              required
+            />
+            <MDBInput
+              label="Confirm Password"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              className="mb-3"
+              required
+            />
+            <MDBBtn
+              color="primary"
+              type="submit"
+              className="w-100"
+              style={{ marginBottom: "10px", padding: "10px", fontSize: "1rem" }}
             >
-              Log In
-            </a>
-          </p>
-        </form>
-      </div>
+              Register
+            </MDBBtn>
+            <p className="text-center" style={{ fontSize: "0.9rem", color: "#555" }}>
+              Already have an account?{" "}
+              <a href="/" style={{ color: "#007bff", textDecoration: "none" }}>
+                Log In
+              </a>
+            </p>
+          </form>
+        </MDBCardBody>
+      </MDBCard>
     </MDBContainer>
   );
 };

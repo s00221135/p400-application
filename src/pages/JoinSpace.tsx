@@ -1,30 +1,37 @@
 import React, { useState, useEffect } from "react";
 import { MDBContainer, MDBInput, MDBBtn } from "mdb-react-ui-kit";
+import { useNavigate } from "react-router-dom";
 
 const JoinSpace: React.FC = () => {
   const [joinCode, setJoinCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [userID, setUserID] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check for auth tokens in sessionStorage or localStorage
     const tokensString =
       sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
+    console.log("JoinSpace tokensString:", tokensString);
     const tokens = tokensString ? JSON.parse(tokensString) : null;
+    console.log("JoinSpace tokens object:", tokens);
     const accessToken = tokens?.accessToken;
     const uID = tokens?.userID;
 
-    // If no valid session, redirect
+    // If no valid session, redirect to login
     if (!accessToken || !uID) {
       alert("No valid session found. Please log in.");
-      window.location.href = "/";
+      navigate("/");
       return;
     }
     setUserID(uID);
-  }, []);
+  }, [navigate]);
 
   const handleJoinHousehold = async () => {
-    if (!joinCode.trim()) {
+    // Trim any leading/trailing whitespace and optionally convert to uppercase if your join codes are case-sensitive
+    const trimmedJoinCode = joinCode.trim(); // You might add .toUpperCase() if needed: joinCode.trim().toUpperCase()
+
+    if (!trimmedJoinCode) {
       alert("Please enter a join code.");
       return;
     }
@@ -33,6 +40,7 @@ const JoinSpace: React.FC = () => {
       return;
     }
 
+    console.log("Attempting to join with code:", trimmedJoinCode, "and userID:", userID);
     setLoading(true);
     try {
       const response = await fetch(
@@ -40,17 +48,17 @@ const JoinSpace: React.FC = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ JoinCode: joinCode, UserID: userID }),
+          body: JSON.stringify({ JoinCode: trimmedJoinCode, UserID: userID }),
         }
       );
 
       const data = await response.json();
+      console.log("Join household response data:", data);
       if (response.ok) {
         // Save the household ID if needed
         localStorage.setItem("HouseholdID", data.HouseholdID);
-        // Use the correct property from your Lambda response: HouseholdName
         alert(`Welcome to ${data.HouseholdName}!`);
-        window.location.href = "/home"; // Navigate to home
+        navigate("/home");
       } else {
         alert("Error: " + data.message);
       }
@@ -76,7 +84,12 @@ const JoinSpace: React.FC = () => {
           onChange={(e) => setJoinCode(e.target.value)}
           className="my-4"
         />
-        <MDBBtn color="primary" className="w-100" onClick={handleJoinHousehold} disabled={loading}>
+        <MDBBtn
+          color="primary"
+          className="w-100"
+          onClick={handleJoinHousehold}
+          disabled={loading}
+        >
           {loading ? "Joining..." : "Join"}
         </MDBBtn>
       </div>

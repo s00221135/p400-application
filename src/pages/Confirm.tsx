@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CognitoUser } from "amazon-cognito-identity-js";
+import { CognitoUser, AuthenticationDetails } from "amazon-cognito-identity-js";
 import UserPool from "../Cognito";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -18,15 +18,17 @@ const Confirm: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Retrieve email from navigation state
-  const email = location.state?.email || "";
+  // Log the state to debug what we received
+  console.log("Confirm page location state:", location.state);
+  // Retrieve email and password from navigation state
+  const { email, password } = (location.state as { email: string; password: string }) || {};
 
   useEffect(() => {
-    if (!email) {
-      alert("No email provided for confirmation.");
+    if (!email || !password) {
+      alert("Missing email or password for automatic sign-in. Please register again.");
       navigate("/register");
     }
-  }, [email, navigate]);
+  }, [email, password, navigate]);
 
   const handleConfirm = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,11 +48,36 @@ const Confirm: React.FC = () => {
         setMessage("Error confirming account: " + err.message);
         console.error("Confirm error:", err);
       } else {
-        setMessage("Account confirmed successfully!");
-        // Navigate to setup-space after a short delay
-        setTimeout(() => {
-          navigate("/setup-space");
-        }, 2000);
+        setMessage("Account confirmed successfully! Signing you in...");
+        // Automatically sign in the user using the password passed from registration
+        const authDetails = new AuthenticationDetails({
+          Username: email,
+          Password: password,
+        });
+        user.authenticateUser(authDetails, {
+          onSuccess: (session) => {
+            console.log("Automatic sign-in success:", session);
+            const idToken = session.getIdToken().getJwtToken();
+            const accessToken = session.getAccessToken().getJwtToken();
+            const refreshToken = session.getRefreshToken().getToken();
+            const userID = session.getIdToken().decodePayload().sub;
+            const username = session.getIdToken().decodePayload().email;
+            const authTokens = { idToken, accessToken, refreshToken, userID, username };
+
+            // Store tokens in sessionStorage
+            sessionStorage.setItem("authTokens", JSON.stringify(authTokens));
+            console.log("Stored authTokens in sessionStorage:", authTokens);
+
+            // After a short delay, navigate to SetupSpace
+            setTimeout(() => {
+              navigate("/setup-space");
+            }, 2000);
+          },
+          onFailure: (authErr) => {
+            setMessage("Automatic sign-in failed: " + authErr.message);
+            console.error("Automatic sign-in error:", authErr);
+          },
+        });
       }
     });
   };
@@ -78,7 +105,11 @@ const Confirm: React.FC = () => {
             </MDBBtn>
           </form>
           {message && (
-            <MDBTypography tag="p" className="text-center" style={{ color: message.includes("successfully") ? "green" : "red" }}>
+            <MDBTypography
+              tag="p"
+              className="text-center"
+              style={{ color: message.includes("successfully") ? "green" : "red" }}
+            >
               {message}
             </MDBTypography>
           )}

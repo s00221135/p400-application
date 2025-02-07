@@ -16,8 +16,8 @@ import {
 const GET_HOUSEHOLD_NAME_API = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev/join-household";
 
 const Home: React.FC = () => {
-  const [householdName, setHouseholdName] = useState("Your Household");
-  const [dndStatus, setDndStatus] = useState<string>("Fergal has Do Not Disturb on until 7 PM");
+  const [householdName, setHouseholdName] = useState("Gateway Block 5 APT 9");
+  const [dndStatus, setDndStatus] = useState<string>("Kelly has Do Not Disturb on until 7 PM");
   const [reservedSpaces, setReservedSpaces] = useState<string>("Living room reserved from 8 PM - 11 PM");
   const [upcomingChores, setUpcomingChores] = useState<string>("It's your turn to take out the bins this week");
   const [notifications, setNotifications] = useState<string>("Electricity bill due in 3 days");
@@ -89,9 +89,6 @@ const Home: React.FC = () => {
               >
                 Welcome to {householdName}!
               </MDBCardTitle>
-              <MDBCardText style={{ fontSize: "1.2rem" }}>
-                Your House at a Glance
-              </MDBCardText>
             </MDBCard>
           </MDBCol>
         </MDBRow>

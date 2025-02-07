@@ -22,6 +22,7 @@ import {
 const RESERVATIONS_BASE_URL = "https://ikq4o2e4c1.execute-api.eu-west-1.amazonaws.com/dev";
 const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev";
 
+// Replace this with your dynamic household ID retrieval logic as needed
 const HOUSEHOLD_ID = "house-001";
 
 interface Reservation {
@@ -38,6 +39,20 @@ interface HouseholdUser {
   Name: string;
   Email?: string;
 }
+
+// Helper function to format date/time in a more readable format
+const formatDateTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  };
+  return date.toLocaleDateString("en-US", options);
+};
 
 const ReserveSharedSpace: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -253,10 +268,10 @@ const ReserveSharedSpace: React.FC = () => {
                         <strong>Purpose:</strong> {res.Purpose}
                       </p>
                       <p>
-                        <strong>Start Time:</strong> {new Date(res.StartTime).toLocaleString()}
+                        <strong>Start Time:</strong> {formatDateTime(res.StartTime)}
                       </p>
                       <p>
-                        <strong>End Time:</strong> {new Date(res.EndTime).toLocaleString()}
+                        <strong>End Time:</strong> {formatDateTime(res.EndTime)}
                       </p>
                       <MDBRow className="mt-2">
                         <MDBCol>

@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { MDBContainer, MDBInput, MDBBtn, MDBSpinner } from "mdb-react-ui-kit";
+import {
+  MDBContainer,
+  MDBCard,
+  MDBCardBody,
+  MDBInput,
+  MDBBtn,
+  MDBSpinner,
+} from "mdb-react-ui-kit";
 import { AuthenticationDetails, CognitoUser } from "amazon-cognito-identity-js";
 import { useNavigate } from "react-router-dom";
 import UserPool from "../Cognito";
@@ -11,13 +18,9 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Use sessionStorage instead of localStorage
     const tokensString = sessionStorage.getItem("authTokens");
     const tokens = tokensString ? JSON.parse(tokensString) : null;
-    const accessToken = tokens?.accessToken;
-
-  
-    if (accessToken) {
+    if (tokens?.accessToken) {
       navigate("/home");
     }
   }, [navigate]);
@@ -77,57 +80,53 @@ const Login: React.FC = () => {
   return (
     <MDBContainer
       fluid
-      className="d-flex justify-content-center align-items-center"
-      style={{ backgroundColor: "#f5f5f5", minHeight: "100vh", width: "100vw", padding: "20px" }}
+      className="d-flex align-items-center justify-content-center"
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #ece9e6, #ffffff)",
+      }}
     >
-      <div
-        style={{
-          backgroundColor: "#e0e0e0",
-          padding: "20px",
-          borderRadius: "8px",
-          maxWidth: "400px",
-          width: "100%",
-          textAlign: "center",
-          boxSizing: "border-box",
-        }}
-      >
-        <h3 style={{ fontWeight: "bold", marginBottom: "20px" }}>Welcome Back</h3>
-        <form onSubmit={handleSubmit}>
-          <MDBInput
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mb-3"
-            style={{ padding: "10px", fontSize: "1rem" }}
-            required
-          />
-          <MDBInput
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mb-4"
-            style={{ padding: "10px", fontSize: "1rem" }}
-            required
-          />
-          <MDBBtn
-            color="primary"
-            type="submit"
-            className="w-100"
-            style={{ padding: "10px", fontSize: "1rem" }}
-            disabled={loading}
-          >
-            {loading ? <MDBSpinner size="sm" /> : "Log In"}
-          </MDBBtn>
-          <p className="text-center mt-4" style={{ fontSize: "0.9rem", color: "#555" }}>
-            Don’t have an account?{" "}
-            <a href="/register" style={{ color: "#007bff" }}>
-              Register
-            </a>
-          </p>
-        </form>
-      </div>
+      <MDBCard style={{ maxWidth: "400px", width: "100%", borderRadius: "10px", boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+        <MDBCardBody className="p-4">
+          <div className="text-center mb-4">
+            <h1 style={{ fontWeight: "bold" }}>Flatchat</h1>
+            <h4 style={{ fontWeight: "bold", marginBottom: "20px" }}>Welcome Back</h4>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <MDBInput
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mb-3"
+              required
+            />
+            <MDBInput
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mb-4"
+              required
+            />
+            <MDBBtn
+              type="submit"
+              color="primary"
+              className="w-100"
+              style={{ padding: "10px", fontSize: "1rem" }}
+              disabled={loading}
+            >
+              {loading ? <MDBSpinner size="sm" /> : "Log In"}
+            </MDBBtn>
+            <p className="text-center mt-4" style={{ fontSize: "0.9rem", color: "#555" }}>
+              Don’t have an account?{" "}
+              <a href="/register" style={{ color: "#007bff", textDecoration: "none" }}>
+                Register
+              </a>
+            </p>
+          </form>
+        </MDBCardBody>
+      </MDBCard>
     </MDBContainer>
   );
 };
