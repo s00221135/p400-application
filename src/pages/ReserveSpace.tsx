@@ -1,4 +1,3 @@
-// ReserveSharedSpace.tsx
 import React, { useState, useEffect } from "react";
 import Navigation from "../components/Navigation";
 import {
@@ -59,6 +58,9 @@ const ReserveSharedSpace: React.FC = () => {
   const [householdUsers, setHouseholdUsers] = useState<HouseholdUser[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Current logged-in user
+  const [currentUser, setCurrentUser] = useState<HouseholdUser | null>(null);
 
   // Modal state management
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -141,9 +143,18 @@ const ReserveSharedSpace: React.FC = () => {
     }
   };
 
+  // Fetch reservations, household users, and current user info on mount
   useEffect(() => {
     fetchReservations();
     fetchHouseholdUsers();
+
+    // Retrieve current user from session storage
+    const tokensString = sessionStorage.getItem("authTokens");
+    if (tokensString) {
+      const tokens = JSON.parse(tokensString);
+      // Assuming tokens contain at least a userID property.
+      setCurrentUser({ UserID: tokens.userID, Name: tokens.name || "Current User" });
+    }
   }, []);
 
   /** ----------------------------------
@@ -162,10 +173,16 @@ const ReserveSharedSpace: React.FC = () => {
       alert("Start and End times are required.");
       return;
     }
-    if (!newReservation.ReservedBy) {
-      alert("Please select the reserving user.");
+    if (!currentUser) {
+      alert("No valid user found. Please log in.");
       return;
     }
+
+    // Automatically assign the logged-in user's ID as the reserver.
+    const reservationToSave = {
+      ...newReservation,
+      ReservedBy: currentUser.UserID,
+    };
 
     const requestMethod = editMode ? "PUT" : "POST";
     const requestUrl = editMode
@@ -175,7 +192,7 @@ const ReserveSharedSpace: React.FC = () => {
     try {
       const payload = {
         HouseholdID: HOUSEHOLD_ID,
-        ...newReservation,
+        ...reservationToSave,
       };
 
       const response = await fetch(requestUrl, {
@@ -236,7 +253,7 @@ const ReserveSharedSpace: React.FC = () => {
                   setNewReservation({
                     ReservationID: "",
                     SpaceName: "",
-                    ReservedBy: "",
+                    ReservedBy: "", // This will be set automatically on save.
                     Purpose: "",
                     StartTime: "",
                     EndTime: ""
@@ -255,15 +272,14 @@ const ReserveSharedSpace: React.FC = () => {
               <p className="text-center text-muted">No reservations yet...</p>
             ) : (
               reservations.map((res) => {
+                // Lookup the user details from householdUsers to display their name
                 const reservedUser = householdUsers.find((u) => u.UserID === res.ReservedBy);
                 const displayReservedBy = reservedUser ? reservedUser.Name : res.ReservedBy;
                 return (
                   <MDBCard key={res.ReservationID} className="mb-3">
                     <MDBCardBody>
                       <h5 className="fw-bold">{res.SpaceName}</h5>
-                      <p>
-                        <strong>Reserved By:</strong> {displayReservedBy}
-                      </p>
+                   
                       <p>
                         <strong>Purpose:</strong> {res.Purpose}
                       </p>
@@ -359,23 +375,6 @@ const ReserveSharedSpace: React.FC = () => {
                 }
                 className="mb-3"
               />
-              <div className="mb-3">
-                <label className="form-label">Reserved By</label>
-                <select
-                  className="form-select"
-                  value={newReservation.ReservedBy}
-                  onChange={(e) =>
-                    setNewReservation({ ...newReservation, ReservedBy: e.target.value })
-                  }
-                >
-                  <option value="">-- Select a Housemate --</option>
-                  {householdUsers.map((user) => (
-                    <option key={user.UserID} value={user.UserID}>
-                      {user.Name}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </MDBModalBody>
             <MDBModalFooter>
               <MDBBtn color="secondary" onClick={() => setModalOpen(false)}>
