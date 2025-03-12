@@ -1,4 +1,3 @@
-// BillSplittingPage.tsx
 import React, { useState, useEffect, ChangeEvent } from "react";
 import Navigation from "../components/Navigation";
 import {
@@ -21,7 +20,6 @@ import {
 // API endpoints
 const API_BASE_URL = "https://aq06k0y8e1.execute-api.eu-west-1.amazonaws.com/dev"; // Bills API
 const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev"; // Household Users API
-
 const HOUSEHOLD_ID = "house-001";
 
 // Helper function to get the current user from sessionStorage.
@@ -30,7 +28,7 @@ const getCurrentUserFromSession = (): string | null => {
   if (tokensString) {
     try {
       const tokens = JSON.parse(tokensString);
-      return tokens.userID; // Adjust based on your token structure.
+      return tokens.userID;
     } catch (error) {
       console.error("Error parsing auth tokens:", error);
     }
@@ -53,12 +51,19 @@ interface Bill {
   Splits?: Split[];
   Members?: string[];
   PaidMembers?: string[];
+  ImageURL?: string;
 }
 
 interface HouseholdUser {
   UserID: string;
   Name: string;
   Email?: string;
+}
+
+// Extend file state to hold both file object and base64 string.
+interface BillImage {
+  file: File;
+  base64: string;
 }
 
 const BillSplittingPage: React.FC = () => {
@@ -72,7 +77,7 @@ const BillSplittingPage: React.FC = () => {
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentBill, setCurrentBill] = useState<Bill | null>(null);
   
-  // State for new bill (for both add and edit)
+  // State for new bill.
   const [newBill, setNewBill] = useState<{
     Title: string;
     Description: string;
@@ -87,19 +92,23 @@ const BillSplittingPage: React.FC = () => {
     Members: []
   });
   
-  // State for the current logged-in user.
+  // State for image upload.
+  const [billImage, setBillImage] = useState<BillImage | null>(null);
+  
+  // State for current user.
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   
+  // State for image modal.
+  const [showImageModal, setShowImageModal] = useState<boolean>(false);
+  const [currentImageURL, setCurrentImageURL] = useState<string>("");
+
   useEffect(() => {
     setCurrentUser(getCurrentUserFromSession());
   }, []);
-  
-  // Whenever currentBill changes (in edit mode), update the newBill state.
+
   useEffect(() => {
     if (editMode && currentBill) {
-      // Here we assume your backend always stores a Members array.
       const members = currentBill.Members || [];
-      console.log("Editing members:", members);
       setNewBill({
         Title: currentBill.Title,
         Description: currentBill.Description,
@@ -110,7 +119,7 @@ const BillSplittingPage: React.FC = () => {
     }
   }, [currentBill, editMode]);
   
-  // Fetch bills from the API.
+  // Fetch bills.
   const fetchBills = async () => {
     setLoading(true);
     setError(null);
@@ -130,7 +139,7 @@ const BillSplittingPage: React.FC = () => {
     }
     setLoading(false);
   };
-  
+
   // Fetch household users.
   const fetchHouseholdUsers = async () => {
     try {
@@ -148,13 +157,13 @@ const BillSplittingPage: React.FC = () => {
       console.error("Error fetching household users:", err);
     }
   };
-  
+
   useEffect(() => {
     fetchBills();
     fetchHouseholdUsers();
   }, []);
-  
-  // Handler for member checkbox changes in the modal.
+
+  // Handle member checkbox changes.
   const handleMemberCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
     if (checked) {
@@ -166,8 +175,23 @@ const BillSplittingPage: React.FC = () => {
       }));
     }
   };
-  
-  // Save (add or update) a bill.
+
+  // Handle file input changes and convert to base64.
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Remove prefix to send only the base64 string.
+        const base64Content = result.split(",")[1];
+        setBillImage({ file, base64: base64Content });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Save (add or update) bill.
   const saveBill = async () => {
     if (!newBill.Title.trim()) {
       alert("Title is required.");
@@ -181,16 +205,22 @@ const BillSplittingPage: React.FC = () => {
       alert("Please select at least one member.");
       return;
     }
-    const payload = {
+
+    let payload: any = {
       HouseholdID: HOUSEHOLD_ID,
       Title: newBill.Title,
       Description: newBill.Description,
       TotalAmount: newBill.TotalAmount,
       DueBy: newBill.DueBy,
-      Members: newBill.Members
+      Members: newBill.Members,
     };
-    console.log("Save payload:", payload);
-  
+
+    // Include image data if available.
+    if (billImage) {
+      payload.ImageData = billImage.base64;
+      payload.ImageContentType = billImage.file.type;
+    }
+    
     try {
       let response;
       if (editMode && currentBill) {
@@ -210,6 +240,8 @@ const BillSplittingPage: React.FC = () => {
         });
       }
       if (response.ok) {
+        // Reset state after saving.
+        setBillImage(null);
         setNewBill({ Title: "", Description: "", TotalAmount: "", DueBy: "", Members: [] });
         setModalOpen(false);
         setEditMode(false);
@@ -224,24 +256,21 @@ const BillSplittingPage: React.FC = () => {
       else alert("Unknown error saving bill");
     }
   };
-  
+
   // Open modal for editing a bill.
   const editBill = (bill: Bill) => {
     setEditMode(true);
     setCurrentBill(bill);
-    // Use the stored Members array; if missing, use an empty array.
-    const members = bill.Members || [];
-    console.log("Editing members:", members);
     setNewBill({
       Title: bill.Title,
       Description: bill.Description,
       TotalAmount: bill.TotalAmount,
       DueBy: bill.DueBy || "",
-      Members: members
+      Members: bill.Members || []
     });
     setModalOpen(true);
   };
-  
+
   // Delete a bill.
   const deleteBill = async (bill: Bill) => {
     if (!window.confirm("Are you sure you want to delete this bill?")) return;
@@ -260,8 +289,8 @@ const BillSplittingPage: React.FC = () => {
       else alert("Unknown error deleting bill");
     }
   };
-  
-  // Update the current user's paid status by updating the PaidMembers array.
+
+  // Update payment status.
   const updatePaidStatus = async (bill: Bill, newStatus: boolean) => {
     if (!currentUser) {
       alert("User not logged in.");
@@ -282,7 +311,7 @@ const BillSplittingPage: React.FC = () => {
       Description: bill.Description,
       TotalAmount: bill.TotalAmount,
       DueBy: bill.DueBy || "",
-      Splits: bill.Splits, // leave splits unchanged
+      Splits: bill.Splits,
       Members: bill.Members || [],
       PaidMembers: updatedPaidMembers
     };
@@ -306,7 +335,14 @@ const BillSplittingPage: React.FC = () => {
       else alert("Unknown error updating payment status");
     }
   };
-  
+
+  // Open the image modal and log the URL for debugging.
+  const handleShowImage = (url: string) => {
+    console.log("Opening Image URL:", url);
+    setCurrentImageURL(url);
+    setShowImageModal(true);
+  };
+
   return (
     <>
       <Navigation />
@@ -319,6 +355,7 @@ const BillSplittingPage: React.FC = () => {
               onClick={() => {
                 setEditMode(false);
                 setNewBill({ Title: "", Description: "", TotalAmount: "", DueBy: "", Members: [] });
+                setBillImage(null);
                 setModalOpen(true);
               }}
             >
@@ -344,13 +381,14 @@ const BillSplittingPage: React.FC = () => {
                     <MDBCardBody>
                       <h5>{bill.Title}</h5>
                       <p>{bill.Description}</p>
-                      <p>
-                        <strong>Total Amount:</strong> {bill.TotalAmount}
-                      </p>
-                      {bill.DueBy && (
-                        <p>
-                          <strong>Due By:</strong> {bill.DueBy}
-                        </p>
+                      <p><strong>Total Amount:</strong> {bill.TotalAmount}</p>
+                      {bill.DueBy && <p><strong>Due By:</strong> {bill.DueBy}</p>}
+                      {bill.ImageURL && (
+                        <div style={{ marginTop: "0.5rem" }}>
+                          <MDBBtn color="secondary" size="sm" onClick={() => handleShowImage(bill.ImageURL!)}>
+                            Show Bill
+                          </MDBBtn>
+                        </div>
                       )}
                       {bill.Splits && (
                         <div>
@@ -359,9 +397,7 @@ const BillSplittingPage: React.FC = () => {
                             {bill.Splits.map((split, idx) => {
                               const user = householdUsers.find(u => u.UserID === split.UserID);
                               const displayName = user ? user.Name : split.UserID;
-                              const hasPaid = bill.PaidMembers
-                                ? bill.PaidMembers.includes(split.UserID)
-                                : split.Paid;
+                              const hasPaid = bill.PaidMembers ? bill.PaidMembers.includes(split.UserID) : split.Paid;
                               return (
                                 <li key={idx}>
                                   {displayName}: {split.Share}{" "}
@@ -434,6 +470,11 @@ const BillSplittingPage: React.FC = () => {
                   onChange={(e) => setNewBill({ ...newBill, DueBy: e.target.value })}
                   className="mb-3"
                 />
+                {/* File upload input */}
+                <div className="mb-3">
+                  <label className="form-label">Upload Bill Image (optional)</label>
+                  <input type="file" accept="image/*" onChange={handleFileChange} />
+                </div>
                 <div className="mb-3">
                   <label className="form-label">Members</label>
                   {householdUsers.map((user) => (
@@ -459,6 +500,34 @@ const BillSplittingPage: React.FC = () => {
                 </MDBBtn>
                 <MDBBtn color="primary" onClick={saveBill}>
                   {editMode ? "Update Bill" : "Save Bill"}
+                </MDBBtn>
+              </MDBModalFooter>
+            </MDBModalContent>
+          </MDBModalDialog>
+        </MDBModal>
+  
+        {/* Modal for Viewing Bill Image */}
+        <MDBModal open={showImageModal} setOpen={setShowImageModal} tabIndex="-1">
+          <MDBModalDialog>
+            <MDBModalContent>
+              <MDBModalHeader>
+                <MDBModalTitle>Bill Image</MDBModalTitle>
+                <MDBBtn className="btn-close" color="none" onClick={() => setShowImageModal(false)}></MDBBtn>
+              </MDBModalHeader>
+              <MDBModalBody className="text-center">
+                {currentImageURL ? (
+                  <img
+                    src={currentImageURL}
+                    alt="Bill"
+                    style={{ maxWidth: "100%", height: "auto", borderRadius: "10px" }}
+                  />
+                ) : (
+                  <p>No image available</p>
+                )}
+              </MDBModalBody>
+              <MDBModalFooter>
+                <MDBBtn color="secondary" onClick={() => setShowImageModal(false)}>
+                  Close
                 </MDBBtn>
               </MDBModalFooter>
             </MDBModalContent>
