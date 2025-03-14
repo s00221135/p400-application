@@ -17,13 +17,11 @@ import {
   MDBInput
 } from "mdb-react-ui-kit";
 
-// Set the base URLs for the two separate APIs
 const RESERVATIONS_BASE_URL = "https://ikq4o2e4c1.execute-api.eu-west-1.amazonaws.com/dev";
 const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev";
-
-// Replace this with your dynamic household ID retrieval logic as needed
 const HOUSEHOLD_ID = "house-001";
 
+// --- Interfaces ---
 interface Reservation {
   ReservationID: string;
   SpaceName: string;
@@ -31,6 +29,8 @@ interface Reservation {
   Purpose: string;
   StartTime: string;
   EndTime: string;
+  ApprovalStatus?: "Pending" | "Approved" | "Rejected";
+  Approvers?: string[];
 }
 
 interface HouseholdUser {
@@ -39,7 +39,7 @@ interface HouseholdUser {
   Email?: string;
 }
 
-// Helper function to format date/time in a more readable format
+// Helper to format datetime
 const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
@@ -62,7 +62,7 @@ const ReserveSharedSpace: React.FC = () => {
   // Current logged-in user
   const [currentUser, setCurrentUser] = useState<HouseholdUser | null>(null);
 
-  // Modal state management
+  // Modal states
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentReservation, setCurrentReservation] = useState<Reservation | null>(null);
@@ -75,22 +75,21 @@ const ReserveSharedSpace: React.FC = () => {
     EndTime: ""
   });
 
-  // Preset space options
+  // Preset spaces
   const spaceOptions = ["Living Room", "Kitchen", "Dining Room", "Study", "Other"];
 
-  /** ----------------------------------
-   * 1) Fetch Reservations (from Reservations API)
-   * ---------------------------------- */
+  // For handling "Other" (custom space name)
+  const [useCustomSpace, setUseCustomSpace] = useState<boolean>(false);
+  const [customSpaceName, setCustomSpaceName] = useState<string>("");
+
+  // ------------------ Fetch Reservations ------------------
   const fetchReservations = async () => {
     setLoading(true);
     setError(null);
     try {
       const url = `${RESERVATIONS_BASE_URL}/reservations?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
-      console.log("Fetching reservations from:", url);
       const response = await fetch(url);
       const textResponse = await response.text();
-      console.log("Raw reservations response:", textResponse);
-
       let data;
       try {
         data = JSON.parse(textResponse);
@@ -102,11 +101,12 @@ const ReserveSharedSpace: React.FC = () => {
 
       if (response.ok) {
         if (!data.reservations || !Array.isArray(data.reservations)) {
-          console.warn("No reservations found or incorrect format.");
+          console.warn("No reservations array found.");
           setReservations([]);
         } else {
-          const sorted = [...data.reservations].sort((a: Reservation, b: Reservation) =>
-            a.StartTime.localeCompare(b.StartTime)
+          // Sort by StartTime ascending
+          const sorted = [...data.reservations].sort(
+            (a: Reservation, b: Reservation) => a.StartTime.localeCompare(b.StartTime)
           );
           setReservations(sorted);
         }
@@ -121,13 +121,10 @@ const ReserveSharedSpace: React.FC = () => {
     }
   };
 
-  /** ----------------------------------
-   * 2) Fetch Household Users (from Household Users API)
-   * ---------------------------------- */
+  // ------------------ Fetch Household Users ------------------
   const fetchHouseholdUsers = async () => {
     try {
       const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
-      console.log("Fetching household users from:", url);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch household users");
@@ -143,23 +140,23 @@ const ReserveSharedSpace: React.FC = () => {
     }
   };
 
-  // Fetch reservations, household users, and current user info on mount
+  // ------------------ useEffect (on mount) ------------------
   useEffect(() => {
     fetchReservations();
     fetchHouseholdUsers();
 
-    // Retrieve current user from session storage
+    // Example: set current user from sessionStorage
     const tokensString = sessionStorage.getItem("authTokens");
     if (tokensString) {
       const tokens = JSON.parse(tokensString);
-      // Assuming tokens contain at least a userID property.
-      setCurrentUser({ UserID: tokens.userID, Name: tokens.name || "Current User" });
+      setCurrentUser({
+        UserID: tokens.userID,
+        Name: tokens.name || "Current User"
+      });
     }
   }, []);
 
-  /** ----------------------------------
-   * 3) Save (Add or Edit) Reservation
-   * ---------------------------------- */
+  // ------------------ Save (Add or Edit) Reservation ------------------
   const saveReservation = async () => {
     if (!newReservation.SpaceName) {
       alert("Please select a space.");
@@ -178,20 +175,37 @@ const ReserveSharedSpace: React.FC = () => {
       return;
     }
 
-    // Automatically assign the logged-in user's ID as the reserver.
+    // If "Other" was selected, override the SpaceName with the custom input
+    if (useCustomSpace) {
+      newReservation.SpaceName = customSpaceName.trim();
+      if (!newReservation.SpaceName) {
+        alert("Please enter a custom space name.");
+        return;
+      }
+    }
+
+    // The user who created or is editing:
+    const requestingUserId = currentUser.UserID;
+
     const reservationToSave = {
       ...newReservation,
-      ReservedBy: currentUser.UserID,
+      ReservedBy: editMode
+        ? newReservation.ReservedBy // Keep the original
+        : currentUser.UserID, // If new, assign
     };
 
     const requestMethod = editMode ? "PUT" : "POST";
     const requestUrl = editMode
-      ? `${RESERVATIONS_BASE_URL}/reservations/${currentReservation?.ReservationID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`
-      : `${RESERVATIONS_BASE_URL}/reservations`;
+      ? // For editing, we must pass the ReservationID in path
+        `${RESERVATIONS_BASE_URL}/reservations/${currentReservation?.ReservationID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`
+      : // For new
+        `${RESERVATIONS_BASE_URL}/reservations`;
 
     try {
+      // The backend uses "RequestUserID" to check ownership
       const payload = {
         HouseholdID: HOUSEHOLD_ID,
+        RequestUserID: requestingUserId,  // <-- pass user ID for ownership check
         ...reservationToSave,
       };
 
@@ -202,10 +216,11 @@ const ReserveSharedSpace: React.FC = () => {
       });
 
       if (response.ok) {
-        fetchReservations();
         setModalOpen(false);
+        fetchReservations();
       } else {
-        alert("Failed to save reservation.");
+        const errText = await response.text();
+        alert(`Failed to save reservation: ${errText}`);
       }
     } catch (err) {
       console.error("Error saving reservation:", err);
@@ -213,23 +228,56 @@ const ReserveSharedSpace: React.FC = () => {
     }
   };
 
-  /** ----------------------------------
-   * 4) Delete Reservation
-   * ---------------------------------- */
+  // ------------------ Delete Reservation ------------------
   const deleteReservation = async (reservationID: string) => {
+    if (!currentUser) {
+      alert("No valid user found. Please log in.");
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this reservation?")) return;
 
+    // For ownership checks, the Lambda expects "UserID" as a query param in DELETE
+    const url = `${RESERVATIONS_BASE_URL}/reservations/${reservationID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}&UserID=${encodeURIComponent(currentUser.UserID)}`;
+
     try {
-      const url = `${RESERVATIONS_BASE_URL}/reservations/${reservationID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
       const response = await fetch(url, { method: "DELETE" });
       if (response.ok) {
         fetchReservations();
       } else {
-        alert("Failed to delete reservation.");
+        const errorText = await response.text();
+        alert("Failed to delete reservation: " + errorText);
       }
     } catch (err) {
       console.error("Error deleting reservation:", err);
       alert("Error deleting reservation.");
+    }
+  };
+
+  // ------------------ Approve or Reject ------------------
+  const handleApproval = async (reservation: Reservation, action: "Approve" | "Reject") => {
+    if (!currentUser) {
+      alert("You must be logged in to approve/reject reservations.");
+      return;
+    }
+    try {
+      const url = `${RESERVATIONS_BASE_URL}/reservations/${reservation.ReservationID}/approve?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          Action: action,
+          UserID: currentUser.UserID,
+        }),
+      });
+
+      if (response.ok) {
+        fetchReservations();
+      } else {
+        const errorText = await response.text();
+        alert("Failed to update approval status: " + errorText);
+      }
+    } catch (err) {
+      console.error("Error approving reservation:", err);
     }
   };
 
@@ -253,11 +301,13 @@ const ReserveSharedSpace: React.FC = () => {
                   setNewReservation({
                     ReservationID: "",
                     SpaceName: "",
-                    ReservedBy: "", // This will be set automatically on save.
+                    ReservedBy: "",
                     Purpose: "",
                     StartTime: "",
                     EndTime: ""
                   });
+                  setUseCustomSpace(false);
+                  setCustomSpaceName("");
                   setModalOpen(true);
                 }}
               >
@@ -275,45 +325,77 @@ const ReserveSharedSpace: React.FC = () => {
                 // Lookup the user details from householdUsers to display their name
                 const reservedUser = householdUsers.find((u) => u.UserID === res.ReservedBy);
                 const displayReservedBy = reservedUser ? reservedUser.Name : res.ReservedBy;
+
                 return (
                   <MDBCard key={res.ReservationID} className="mb-3">
                     <MDBCardBody>
                       <h5 className="fw-bold">{res.SpaceName}</h5>
-                   
+                      <p><strong>Reserved By:</strong> {displayReservedBy}</p>
+                      <p><strong>Purpose:</strong> {res.Purpose}</p>
+                      <p><strong>Start Time:</strong> {formatDateTime(res.StartTime)}</p>
+                      <p><strong>End Time:</strong> {formatDateTime(res.EndTime)}</p>
                       <p>
-                        <strong>Purpose:</strong> {res.Purpose}
+                        <strong>Status:</strong> {res.ApprovalStatus || "Pending"}
                       </p>
-                      <p>
-                        <strong>Start Time:</strong> {formatDateTime(res.StartTime)}
-                      </p>
-                      <p>
-                        <strong>End Time:</strong> {formatDateTime(res.EndTime)}
-                      </p>
-                      <MDBRow className="mt-2">
-                        <MDBCol>
-                          <MDBBtn
-                            color="info"
-                            size="sm"
-                            onClick={() => {
-                              setEditMode(true);
-                              setNewReservation(res);
-                              setCurrentReservation(res);
-                              setModalOpen(true);
-                            }}
-                          >
-                            Edit
-                          </MDBBtn>
-                        </MDBCol>
-                        <MDBCol>
-                          <MDBBtn
-                            color="danger"
-                            size="sm"
-                            onClick={() => deleteReservation(res.ReservationID)}
-                          >
-                            Delete
-                          </MDBBtn>
-                        </MDBCol>
-                      </MDBRow>
+
+                      {/* Approve/Reject if user != reserving user & status is Pending */}
+                      {currentUser?.UserID !== res.ReservedBy &&
+                        res.ApprovalStatus === "Pending" && (
+                          <div className="mb-2">
+                            <MDBBtn
+                              color="success"
+                              size="sm"
+                              onClick={() => handleApproval(res, "Approve")}
+                              className="me-2"
+                            >
+                              Approve
+                            </MDBBtn>
+                            <MDBBtn
+                              color="warning"
+                              size="sm"
+                              onClick={() => handleApproval(res, "Reject")}
+                            >
+                              Reject
+                            </MDBBtn>
+                          </div>
+                      )}
+
+                      {/* Edit/Delete only if current user is the one who created it */}
+                      {currentUser?.UserID === res.ReservedBy && (
+                        <MDBRow className="mt-2">
+                          <MDBCol>
+                            <MDBBtn
+                              color="info"
+                              size="sm"
+                              onClick={() => {
+                                setEditMode(true);
+                                setNewReservation(res);
+                                setCurrentReservation(res);
+                                setModalOpen(true);
+
+                                // If space is custom
+                                if (!spaceOptions.includes(res.SpaceName)) {
+                                  setUseCustomSpace(true);
+                                  setCustomSpaceName(res.SpaceName);
+                                } else {
+                                  setUseCustomSpace(res.SpaceName === "Other");
+                                }
+                              }}
+                            >
+                              Edit
+                            </MDBBtn>
+                          </MDBCol>
+                          <MDBCol>
+                            <MDBBtn
+                              color="danger"
+                              size="sm"
+                              onClick={() => deleteReservation(res.ReservationID)}
+                            >
+                              Delete
+                            </MDBBtn>
+                          </MDBCol>
+                        </MDBRow>
+                      )}
                     </MDBCardBody>
                   </MDBCard>
                 );
@@ -323,6 +405,7 @@ const ReserveSharedSpace: React.FC = () => {
         </MDBRow>
       </MDBContainer>
 
+      {/* ------------------ ADD/EDIT MODAL ------------------ */}
       <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex="-1">
         <MDBModalDialog>
           <MDBModalContent>
@@ -335,10 +418,18 @@ const ReserveSharedSpace: React.FC = () => {
                 <label className="form-label">Select Space</label>
                 <select
                   className="form-select"
-                  value={newReservation.SpaceName}
-                  onChange={(e) =>
-                    setNewReservation({ ...newReservation, SpaceName: e.target.value })
-                  }
+                  value={useCustomSpace ? "Other" : newReservation.SpaceName}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "Other") {
+                      setUseCustomSpace(true);
+                      setNewReservation({ ...newReservation, SpaceName: "Other" });
+                    } else {
+                      setUseCustomSpace(false);
+                      setNewReservation({ ...newReservation, SpaceName: value });
+                      setCustomSpaceName("");
+                    }
+                  }}
                 >
                   <option value="">-- Select a Space --</option>
                   {spaceOptions.map((space) => (
@@ -348,6 +439,17 @@ const ReserveSharedSpace: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              {useCustomSpace && (
+                <MDBInput
+                  label="Custom Space Name"
+                  type="text"
+                  value={customSpaceName}
+                  onChange={(e) => setCustomSpaceName(e.target.value)}
+                  className="mb-3"
+                />
+              )}
+
               <MDBInput
                 label="Purpose"
                 type="text"
