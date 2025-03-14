@@ -291,6 +291,7 @@ const BillSplittingPage: React.FC = () => {
   };
 
   // Update payment status.
+  // *** FIX: Include ImageURL in payload so that the bill image isn't lost ***
   const updatePaidStatus = async (bill: Bill, newStatus: boolean) => {
     if (!currentUser) {
       alert("User not logged in.");
@@ -305,7 +306,7 @@ const BillSplittingPage: React.FC = () => {
     } else {
       updatedPaidMembers = currentPaid.filter(uid => uid !== currentUser);
     }
-    const payload = {
+    const payload: any = {
       HouseholdID: HOUSEHOLD_ID,
       Title: bill.Title,
       Description: bill.Description,
@@ -315,6 +316,12 @@ const BillSplittingPage: React.FC = () => {
       Members: bill.Members || [],
       PaidMembers: updatedPaidMembers
     };
+
+    // Include ImageURL if it exists so the image is not removed.
+    if (bill.ImageURL) {
+      payload.ImageURL = bill.ImageURL;
+    }
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/bills/${bill.BillID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`,
@@ -385,9 +392,9 @@ const BillSplittingPage: React.FC = () => {
                       {bill.DueBy && <p><strong>Due By:</strong> {bill.DueBy}</p>}
                       {bill.ImageURL && (
                         <div style={{ marginTop: "0.5rem" }}>
-                          <MDBBtn color="secondary" size="sm" onClick={() => handleShowImage(bill.ImageURL!)}>
-                            Show Bill
-                          </MDBBtn>
+                                        <MDBBtn color="secondary" size="sm" onClick={() => handleShowImage(bill.ImageURL!)}>
+                    Show Bill
+                    </MDBBtn>
                         </div>
                       )}
                       {bill.Splits && (
