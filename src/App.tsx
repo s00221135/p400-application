@@ -12,32 +12,116 @@ import Register from "./pages/Registration";
 import CleaningRota from "./pages/CleaningRota";
 import Profile from "./pages/Profile";
 import Confirm from "./pages/Confirm";
-import SocialFeed from "./pages/SocialFeed"; // New Social Feed Page
-import AddPost from "./pages/AddPost"; // New Page for Creating a Post
-import ViewPost from "./pages/ViewPost"; // New Page to View a Post
+import SocialFeed from "./pages/SocialFeed";
+import AddPost from "./pages/AddPost";
+import ViewPost from "./pages/ViewPost";
 import ReserveSharedSpace from "./pages/ReserveSpace";
 import BillSplittingPage from "./pages/Bills";
+
+// 1) Import your PrivateRoute
+import PrivateRoute from "./components/PrivateRoute";
 
 const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<Login />} /> {/* Default to Login page */}
-          <Route path="/setup-space" element={<SetupSpace />} />
-          <Route path="/create-space" element={<CreateSpace />} />
-          <Route path="/join-space" element={<JoinSpace />} />
-          <Route path="/home" element={<Home />} />
+          {/* Public routes (accessible even when not logged in) */}
+          <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/cleaning-rota" element={<CleaningRota />} />
-          <Route path="/profile" element={<Profile />} />
+
+          {/* If your /confirm page needs to be public, keep it outside PrivateRoute */}
           <Route path="/confirm" element={<Confirm />} />
-<Route path="/reserve-space" element={<ReserveSharedSpace/>}/>
-<Route path="/bills" element={<BillSplittingPage />} />
-          {/* Social Feed Routes */}
-          <Route path="/social-feed" element={<SocialFeed />} /> {/* Main Feed */}
-          <Route path="/add-post" element={<AddPost />} /> {/* Fix: No props passed */}
-          <Route path="/view-post/:postId" element={<ViewPost />} /> {/* View a Single Post */}
+
+          {/* Private routes: wrap with <PrivateRoute> */}
+          <Route
+            path="/setup-space"
+            element={
+              <PrivateRoute>
+                <SetupSpace />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/create-space"
+            element={
+              <PrivateRoute>
+                <CreateSpace />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/join-space"
+            element={
+              <PrivateRoute>
+                <JoinSpace />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <Home />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/cleaning-rota"
+            element={
+              <PrivateRoute>
+                <CleaningRota />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/reserve-space"
+            element={
+              <PrivateRoute>
+                <ReserveSharedSpace />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/bills"
+            element={
+              <PrivateRoute>
+                <BillSplittingPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/social-feed"
+            element={
+              <PrivateRoute>
+                <SocialFeed />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/add-post"
+            element={
+              <PrivateRoute>
+                <AddPost />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/view-post/:postId"
+            element={
+              <PrivateRoute>
+                <ViewPost />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>
