@@ -17,8 +17,9 @@ import AddPost from "./pages/AddPost";
 import ViewPost from "./pages/ViewPost";
 import ReserveSharedSpace from "./pages/ReserveSpace";
 import BillSplittingPage from "./pages/Bills";
+import ShoppingListPage from "./pages/ShoppingList"; // Shopping list overview page
+import ShoppingListDetail from "./pages/ShoppingListDetail.tsx"; // Shopping list detail page
 
-// 1) Import your PrivateRoute
 import PrivateRoute from "./components/PrivateRoute";
 
 const App: React.FC = () => {
@@ -26,14 +27,12 @@ const App: React.FC = () => {
     <Router>
       <div className="App">
         <Routes>
-          {/* Public routes (accessible even when not logged in) */}
+          {/* Public routes */}
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
-          {/* If your /confirm page needs to be public, keep it outside PrivateRoute */}
           <Route path="/confirm" element={<Confirm />} />
 
-          {/* Private routes: wrap with <PrivateRoute> */}
+          {/* Private routes */}
           <Route
             path="/setup-space"
             element={
@@ -119,6 +118,23 @@ const App: React.FC = () => {
             element={
               <PrivateRoute>
                 <ViewPost />
+              </PrivateRoute>
+            }
+          />
+          {/* Shopping List overview and detail routes */}
+          <Route
+            path="/shopping-list"
+            element={
+              <PrivateRoute>
+                <ShoppingListPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/shopping-list/:id"
+            element={
+              <PrivateRoute>
+                <ShoppingListDetail />
               </PrivateRoute>
             }
           />

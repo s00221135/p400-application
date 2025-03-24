@@ -1,4 +1,3 @@
-// Navigation.tsx
 import React, { useEffect, useState } from "react";
 import {
   MDBNavbar,
@@ -49,10 +48,14 @@ const Navigation: React.FC = () => {
       break;
     case "/bills":
       pageTitle = "Bills";
-      pageIcon = "file-invoice-dollar"; // Using FontAwesome icon for bills/invoice (adjust as needed)
+      pageIcon = "file-invoice-dollar";
       break;
     case "/reserve-space":
       pageTitle = "Reserve Space";
+      break;
+    case "/shopping-list":
+      pageTitle = "Shopping List";
+      pageIcon = "shopping-cart";
       break;
     case "/profile":
       pageTitle = "Profile";
@@ -103,6 +106,11 @@ const Navigation: React.FC = () => {
                 </MDBNavbarLink>
               </MDBDropdownItem>
               <MDBDropdownItem>
+                <MDBNavbarLink href="/shopping-list" className={getActiveClass("/shopping-list")}>
+                  Shopping List
+                </MDBNavbarLink>
+              </MDBDropdownItem>
+              <MDBDropdownItem>
                 <MDBNavbarLink href="/profile" className={getActiveClass("/profile")}>
                   Profile
                 </MDBNavbarLink>
@@ -129,6 +137,11 @@ const Navigation: React.FC = () => {
             <MDBNavbarItem>
               <MDBNavbarLink href="/cleaning-rota" className={getActiveClass("/cleaning-rota")}>
                 Cleaning Rota
+              </MDBNavbarLink>
+            </MDBNavbarItem>
+            <MDBNavbarItem>
+              <MDBNavbarLink href="/shopping-list" className={getActiveClass("/shopping-list")}>
+                Shopping List
               </MDBNavbarLink>
             </MDBNavbarItem>
             <MDBNavbarItem>
