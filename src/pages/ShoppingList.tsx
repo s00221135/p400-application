@@ -19,10 +19,11 @@ import {
 } from "mdb-react-ui-kit";
 import { useNavigate } from "react-router-dom";
 
-// Updated API endpoint for shopping lists
+// API endpoints
 const API_BASE_URL = "https://ixbggm0iid.execute-api.eu-west-1.amazonaws.com/dev";
+const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// Helper function to retrieve the HouseholdID from auth tokens
+// Helper: Retrieve household ID from session tokens
 const getHouseholdIdFromSession = (): string | null => {
   const tokensString = sessionStorage.getItem("authTokens");
   if (tokensString) {
@@ -34,6 +35,41 @@ const getHouseholdIdFromSession = (): string | null => {
     }
   }
   return null;
+};
+
+// Helper: If householdID is missing, fetch it using the read-user endpoint and update sessionStorage
+const fetchHouseholdID = async (): Promise<string | null> => {
+  const tokensString = sessionStorage.getItem("authTokens");
+  if (!tokensString) return null;
+  try {
+    const tokens = JSON.parse(tokensString);
+    if (tokens.householdID) {
+      return tokens.householdID;
+    }
+    const { userID, accessToken } = tokens;
+    if (!userID || !accessToken) return null;
+    const response = await fetch(READ_USER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ UserID: userID })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const householdID = data.HouseholdID || null;
+      if (householdID) {
+        tokens.householdID = householdID;
+        sessionStorage.setItem("authTokens", JSON.stringify(tokens));
+      }
+      return householdID;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching household ID:", error);
+    return null;
+  }
 };
 
 interface Product {
@@ -66,13 +102,20 @@ const ShoppingListPage: React.FC = () => {
   const [newProduct, setNewProduct] = useState<string>("");
   const [products, setProducts] = useState<Product[]>([]);
 
+  // On mount, attempt to load householdID from session; if missing, fetch it.
   useEffect(() => {
-    const id = getHouseholdIdFromSession();
-    if (!id) {
-      setError("Household ID not found. Please log in.");
-    } else {
-      setHouseholdID(id);
+    async function loadHouseholdID() {
+      let id = getHouseholdIdFromSession();
+      if (!id) {
+        id = await fetchHouseholdID();
+      }
+      if (!id) {
+        setError("Household ID not found. Please log in.");
+      } else {
+        setHouseholdID(id);
+      }
     }
+    loadHouseholdID();
   }, []);
 
   const fetchShoppingLists = async () => {
@@ -201,14 +244,17 @@ const ShoppingListPage: React.FC = () => {
             <h2 className="mb-3">Household Shopping Lists</h2>
           </MDBCol>
         </MDBRow>
-        <MDBRow>
-          <MDBCol md="12" className="text-center mb-4">
-            <MDBBtn color="primary" onClick={() => {
-              setEditMode(false);
-              setNewListTitle("");
-              setProducts([]);
-              setModalOpen(true);
-            }}>
+        <MDBRow className="mb-4">
+          <MDBCol md="12" className="text-center">
+            <MDBBtn
+              color="primary"
+              onClick={() => {
+                setEditMode(false);
+                setNewListTitle("");
+                setProducts([]);
+                setModalOpen(true);
+              }}
+            >
               <MDBIcon fas icon="plus" className="me-2" />
               Add New Shopping List
             </MDBBtn>

@@ -14,27 +14,62 @@ import {
   MDBIcon,
 } from "mdb-react-ui-kit";
 
-// Update with your API endpoint
+// Update with your API endpoint and read-user endpoint
 const API_BASE_URL = "https://ixbggm0iid.execute-api.eu-west-1.amazonaws.com/dev";
+const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// Helper to get household ID from session tokens
-const getHouseholdIdFromSession = (): string | null => {
+/**
+ * Helper: Retrieve householdID and user's actual Name from sessionStorage.
+ * If the token does not have a "Name" property, fetch the user profile
+ * from the read-user endpoint and then store the actual name.
+ */
+const fetchSessionData = async (): Promise<{ householdID: string | null; userName: string | null }> => {
   const tokensString = sessionStorage.getItem("authTokens");
-  if (tokensString) {
-    try {
-      const tokens = JSON.parse(tokensString);
-      return tokens.householdID || null;
-    } catch (error) {
-      console.error("Error parsing auth tokens:", error);
+  if (!tokensString) return { householdID: null, userName: null };
+  try {
+    const tokens = JSON.parse(tokensString);
+    let householdID = tokens.householdID || null;
+    // Prefer tokens.Name (actual full name) if available; if not, then tokens.username
+    let userName = tokens.Name || tokens.username || null;
+    // If userName is still null or looks like an email address, try to fetch profile from read-user endpoint
+    if (!userName || userName.includes("@")) {
+      const { userID, accessToken } = tokens;
+      if (userID && accessToken) {
+        const response = await fetch(READ_USER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ UserID: userID }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          // Assume the read-user endpoint returns a property called "Name"
+          userName = data.Name || userName;
+          // Also, update householdID if missing
+          if (!householdID && data.HouseholdID) {
+            householdID = data.HouseholdID;
+          }
+          // Save updated info back to sessionStorage
+          tokens.Name = userName;
+          if (householdID) tokens.householdID = householdID;
+          sessionStorage.setItem("authTokens", JSON.stringify(tokens));
+        }
+      }
     }
+    return { householdID, userName: userName || "Unknown" };
+  } catch (error) {
+    console.error("Error fetching session data:", error);
+    return { householdID: null, userName: null };
   }
-  return null;
 };
 
 interface Product {
   ProductID: string;
   Name: string;
   Purchased: boolean;
+  addedBy?: string;
 }
 
 interface ShoppingList {
@@ -48,6 +83,7 @@ const ShoppingListDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>(); // Shopping list ID from URL
   const navigate = useNavigate();
   const [householdID, setHouseholdID] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [shoppingList, setShoppingList] = useState<ShoppingList | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,17 +91,21 @@ const ShoppingListDetail: React.FC = () => {
   // Local state for adding a new item
   const [newItemName, setNewItemName] = useState<string>("");
 
-  // Retrieve householdID on mount
+  // Load session data (householdID and userName) on mount
   useEffect(() => {
-    const id = getHouseholdIdFromSession();
-    if (!id) {
-      setError("Household ID not found. Please log in.");
-    } else {
-      setHouseholdID(id);
+    async function loadSession() {
+      const { householdID, userName } = await fetchSessionData();
+      if (!householdID) {
+        setError("Household ID not found. Please log in.");
+      } else {
+        setHouseholdID(householdID);
+        setUserName(userName);
+      }
     }
+    loadSession();
   }, []);
 
-  // Fetch the shopping list details from your API
+  // Fetch shopping list details from the API
   const fetchShoppingList = async () => {
     if (!householdID || !id) return;
     setLoading(true);
@@ -92,7 +132,7 @@ const ShoppingListDetail: React.FC = () => {
     }
   }, [householdID, id]);
 
-  // Toggle the purchased status of an item then update on server
+  // Toggle the purchased status of a product then update server
   const togglePurchased = (productId: string) => {
     if (!shoppingList) return;
     const updatedProducts = shoppingList.Products.map((prod) =>
@@ -103,20 +143,21 @@ const ShoppingListDetail: React.FC = () => {
     updateShoppingListOnServer({ ...shoppingList, Products: updatedProducts });
   };
 
-  // Add new item locally then update on server
+  // Add new item (with addedBy set to userName) then update server
   const addNewItem = () => {
     if (!newItemName.trim() || !shoppingList) return;
     const newProduct: Product = {
       ProductID: Date.now().toString(),
       Name: newItemName,
       Purchased: false,
+      addedBy: userName || "Unknown",
     };
     const updatedProducts = [...shoppingList.Products, newProduct];
     updateShoppingListOnServer({ ...shoppingList, Products: updatedProducts });
     setNewItemName("");
   };
 
-  // Delete a single product and update server
+  // Delete a product then update server
   const deleteProduct = (productId: string) => {
     if (!shoppingList) return;
     const updatedProducts = shoppingList.Products.filter(
@@ -198,13 +239,18 @@ const ShoppingListDetail: React.FC = () => {
                     <MDBCol md="12" key={item.ProductID} className="mb-2">
                       <MDBCard className="p-2">
                         <MDBCardBody className="d-flex justify-content-between align-items-center">
-                          <div className="d-flex align-items-center">
+                          <div>
                             <MDBCheckbox
                               id={`item-${item.ProductID}`}
                               checked={item.Purchased}
                               onChange={() => togglePurchased(item.ProductID)}
                               label={item.Name}
                             />
+                            {item.addedBy && (
+                              <p style={{ color: "grey", fontSize: "0.8em", margin: 0 }}>
+                                Added by: {item.addedBy}
+                              </p>
+                            )}
                           </div>
                           <MDBBtn
                             color="danger"
