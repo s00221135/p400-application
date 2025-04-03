@@ -35,18 +35,21 @@ interface Post {
 const SocialFeed: React.FC = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
+
+  // Track user's location
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+
+  // Selected geofence radius
   const [selectedRadius, setSelectedRadius] = useState<number>(500); // Default radius
   const [error, setError] = useState<string | null>(null);
 
-  // Remove automatic location request from useEffect.
-  // Instead, we'll call requestLocation() via a button click.
-  // useEffect(() => {
-  //   requestLocation();
-  // }, []);
+  // 1) Prompt for location immediately when page loads
+  useEffect(() => {
+    requestLocation();
+  }, []);
 
-  // Request User Location triggered by user gesture
+  // 2) Request user location
   const requestLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -55,8 +58,9 @@ const SocialFeed: React.FC = () => {
         setLatitude(lat);
         setLongitude(lon);
         console.log("✅ Location granted:", lat, lon);
-        // Clear any previous error when location is granted
+        // Clear any previous error
         setError(null);
+        // Fetch posts near user
         fetchPosts(lat, lon, selectedRadius);
       },
       (locationError) => {
@@ -69,7 +73,7 @@ const SocialFeed: React.FC = () => {
     );
   };
 
-  // Fetch Posts Based on user location & radius
+  // 3) Fetch posts from API (with optional location)
   const fetchPosts = async (lat: number | null, lon: number | null, radius: number) => {
     try {
       let url = `${API_BASE_URL}/get-posts?radius=${radius}`;
@@ -85,7 +89,7 @@ const SocialFeed: React.FC = () => {
     }
   };
 
-  // Handle Likes
+  // 4) Handle likes
   const handleLike = async (postId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/like-post`, {
@@ -94,7 +98,7 @@ const SocialFeed: React.FC = () => {
         body: JSON.stringify({ PostID: postId }),
       });
       if (response.ok) {
-        // Re-fetch posts to get updated like count
+        // Re-fetch to update like counts
         fetchPosts(latitude, longitude, selectedRadius);
       } else {
         console.error("🚨 Error updating likes:", await response.text());
@@ -104,20 +108,15 @@ const SocialFeed: React.FC = () => {
     }
   };
 
-  // Handle Radius Selection
+  // 5) Handle radius changes
   const handleRadiusChange = (radius: number) => {
     setSelectedRadius(radius);
-    if (latitude !== null && longitude !== null) {
-      fetchPosts(latitude, longitude, radius);
-    } else {
-      // If location is not available, just fetch posts with new radius
-      fetchPosts(null, null, radius);
-    }
+    // If we have location, fetch near user; else fetch unfiltered
+    fetchPosts(latitude, longitude, radius);
   };
 
   return (
     <>
-      {/* Top Navigation */}
       <Navigation />
 
       <MDBContainer fluid className="py-4 px-3">
@@ -153,7 +152,7 @@ const SocialFeed: React.FC = () => {
           </MDBCol>
         </MDBRow>
 
-        {/* If no location yet, show a button to request it */}
+        {/* Fallback button if user wants to re-try location or if it was initially blocked */}
         {latitude === null && longitude === null && (
           <MDBRow className="mb-3">
             <MDBCol className="text-center">
@@ -164,7 +163,7 @@ const SocialFeed: React.FC = () => {
           </MDBRow>
         )}
 
-        {/* Error / Retry location */}
+        {/* Error + Retry location button if needed */}
         {error && (
           <MDBRow className="mb-3">
             <MDBCol>
