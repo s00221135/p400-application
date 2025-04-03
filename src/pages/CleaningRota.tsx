@@ -18,12 +18,44 @@ import {
   MDBCheckbox,
 } from "mdb-react-ui-kit";
 
-// Two different base URLs because tasks and household-users are on different API IDs:
+// 1) The two base URLs remain:
 const TASKS_BASE_URL = "https://nlqi44a390.execute-api.eu-west-1.amazonaws.com/dev";
 const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev";
+const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// Replace or fetch this from localStorage/sessionStorage in your real app:
-const HOUSEHOLD_ID = "house-001";
+// 2) Helper function to load session data
+const loadSessionData = async () => {
+  const tokensString = sessionStorage.getItem("authTokens");
+  if (!tokensString) return null;
+  try {
+    const tokens = JSON.parse(tokensString);
+    if (!tokens.userID || !tokens.accessToken) {
+      return null; // not fully authenticated
+    }
+    // If householdID is missing, fetch from read-user
+    if (!tokens.householdID) {
+      const resp = await fetch(READ_USER_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.accessToken}`,
+        },
+        body: JSON.stringify({ UserID: tokens.userID }),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      tokens.householdID = data.HouseholdID;
+      sessionStorage.setItem("authTokens", JSON.stringify(tokens));
+    }
+    return {
+      userID: tokens.userID,
+      householdID: tokens.householdID,
+    };
+  } catch (error) {
+    console.error("Error loading session data:", error);
+    return null;
+  }
+};
 
 interface Task {
   TaskID: string;
@@ -38,10 +70,13 @@ interface HouseholdUser {
   UserID: string;
   Name: string;
   Email?: string;
-  // Additional fields if needed
 }
 
 const CleaningRota: React.FC = () => {
+  // 3) Store householdID and userID in state
+  const [householdID, setHouseholdID] = useState<string | null>(null);
+  const [userID, setUserID] = useState<string | null>(null);
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [householdUsers, setHouseholdUsers] = useState<HouseholdUser[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -60,14 +95,32 @@ const CleaningRota: React.FC = () => {
     Completed: false,
   });
 
-  /* ----------------------------------
-   * 1) Fetch Tasks (using TASKS_BASE_URL)
-   * ---------------------------------- */
-  const fetchTasks = async () => {
+  // 4) On mount, load session data
+  useEffect(() => {
+    (async () => {
+      const session = await loadSessionData();
+      if (!session) {
+        setError("No valid user found. Please log in.");
+        return;
+      }
+      setHouseholdID(session.householdID);
+      setUserID(session.userID);
+    })();
+  }, []);
+
+  // 5) Only fetch tasks + users after we have a householdID
+  useEffect(() => {
+    if (householdID) {
+      fetchTasks(householdID);
+      fetchHouseholdUsers(householdID);
+    }
+  }, [householdID]);
+
+  const fetchTasks = async (hid: string) => {
     setLoading(true);
     setError(null);
     try {
-      const url = `${TASKS_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
+      const url = `${TASKS_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(hid)}`;
       console.log("📡 Fetching tasks from:", url);
 
       const response = await fetch(url);
@@ -88,7 +141,7 @@ const CleaningRota: React.FC = () => {
           console.warn("⚠️ No tasks found or incorrect format.");
           setTasks([]);
         } else {
-          // Sort tasks so that tasks not completed come first
+          // Sort tasks so that incomplete tasks come first
           const sortedTasks = [...data.tasks].sort((a: Task, b: Task) =>
             a.Completed === b.Completed ? 0 : a.Completed ? 1 : -1
           );
@@ -105,17 +158,14 @@ const CleaningRota: React.FC = () => {
     }
   };
 
-  /* ----------------------------------
-   * 2) Fetch Household Users (using USERS_BASE_URL)
-   * ---------------------------------- */
-  const fetchHouseholdUsers = async () => {
+  const fetchHouseholdUsers = async (hid: string) => {
     try {
-      const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`;
+      const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(hid)}`;
       console.log("📡 Fetching household users from:", url);
 
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error("Failed to fetch household users (403 or other error)");
+        throw new Error("Failed to fetch household users");
       }
 
       const data = await response.json();
@@ -124,25 +174,19 @@ const CleaningRota: React.FC = () => {
       if (Array.isArray(data.users)) {
         setHouseholdUsers(data.users);
       } else {
-        console.warn("No 'users' array found in user response");
+        console.warn("No 'users' array found in response.");
       }
     } catch (err) {
       console.error("🚨 Error fetching household users:", err);
     }
   };
 
-  /* ----------------------------------
-   * 3) useEffect: Load tasks + users on mount
-   * ---------------------------------- */
-  useEffect(() => {
-    fetchTasks();
-    fetchHouseholdUsers();
-  }, []);
-
-  /* ----------------------------------
-   * 4) Add or Edit Task
-   * ---------------------------------- */
+  // Add or Edit Task
   const saveTask = async () => {
+    if (!householdID) {
+      alert("No valid household. Please log in.");
+      return;
+    }
     if (!newTask.Title.trim()) {
       alert("Task title is required.");
       return;
@@ -162,13 +206,13 @@ const CleaningRota: React.FC = () => {
         method: requestMethod,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          HouseholdID: HOUSEHOLD_ID,
+          HouseholdID: householdID,
           ...newTask,
         }),
       });
 
       if (response.ok) {
-        fetchTasks();
+        fetchTasks(householdID);
         setModalOpen(false);
       } else {
         alert("Failed to save task.");
@@ -179,22 +223,21 @@ const CleaningRota: React.FC = () => {
     }
   };
 
-  /* ----------------------------------
-   * 5) Delete Task
-   * ---------------------------------- */
+  // Delete Task
   const deleteTask = async (taskID: string) => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
-
+    if (!householdID) {
+      alert("No valid household. Please log in.");
+      return;
+    }
     try {
       const response = await fetch(
-        `${TASKS_BASE_URL}/tasks/${taskID}?HouseholdID=${HOUSEHOLD_ID}`,
-        {
-          method: "DELETE",
-        }
+        `${TASKS_BASE_URL}/tasks/${taskID}?HouseholdID=${encodeURIComponent(householdID)}`,
+        { method: "DELETE" }
       );
 
       if (response.ok) {
-        fetchTasks();
+        fetchTasks(householdID);
       } else {
         alert("Failed to delete task.");
       }
@@ -204,20 +247,22 @@ const CleaningRota: React.FC = () => {
     }
   };
 
-  /* ----------------------------------
-   * 6) Toggle Task Completion
-   * ---------------------------------- */
+  // Toggle Task Completion
   const toggleTaskCompletion = async (task: Task) => {
+    if (!householdID) {
+      alert("No valid household. Please log in.");
+      return;
+    }
     try {
       const updatedTask = { ...task, Completed: !task.Completed };
       const response = await fetch(`${TASKS_BASE_URL}/tasks/${task.TaskID}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ HouseholdID: HOUSEHOLD_ID, ...updatedTask }),
+        body: JSON.stringify({ HouseholdID: householdID, ...updatedTask }),
       });
 
       if (response.ok) {
-        fetchTasks();
+        fetchTasks(householdID);
       } else {
         alert("Failed to update task status.");
       }
@@ -235,16 +280,13 @@ const CleaningRota: React.FC = () => {
         <MDBRow className="justify-content-center">
           <MDBCol xs="12" sm="10" md="8" lg="6">
             <h2 className="text-center">Cleaning Rota</h2>
-            <p className="text-center text-muted">
-              Manage household cleaning tasks
-            </p>
+            <p className="text-center text-muted">Manage household cleaning tasks</p>
 
             {/* Add Task Button */}
             <div className="text-center mb-3">
               <MDBBtn
                 color="primary"
                 onClick={() => {
-                  console.log("Opening modal for Add Task");
                   setEditMode(false);
                   setNewTask({
                     TaskID: "",
@@ -264,16 +306,14 @@ const CleaningRota: React.FC = () => {
             {loading && <p className="text-center text-muted">Loading tasks...</p>}
             {error && <p className="text-danger text-center">{error}</p>}
 
-            {/* Task List */}
             {tasks.length === 0 && !loading ? (
               <p className="text-center text-muted">Nothing to do yet...</p>
             ) : (
               tasks.map((task) => {
-                // Lookup user name for display from householdUsers
-                const assignedUser = householdUsers.find(
-                  (u) => u.UserID === task.AssignedTo
-                );
+                // Lookup user name for display
+                const assignedUser = householdUsers.find((u) => u.UserID === task.AssignedTo);
                 const displayAssigned = assignedUser ? assignedUser.Name : task.AssignedTo;
+
                 return (
                   <MDBCard
                     key={task.TaskID}
@@ -304,7 +344,6 @@ const CleaningRota: React.FC = () => {
                             color="info"
                             size="sm"
                             onClick={() => {
-                              console.log("Opening modal for Edit Task");
                               setEditMode(true);
                               setNewTask(task);
                               setCurrentTask(task);
@@ -334,12 +373,6 @@ const CleaningRota: React.FC = () => {
       </MDBContainer>
 
       {/* Add/Edit Task Modal */}
-      {/**
-       * Adjust modal props based on your mdb-react-ui-kit version.
-       * For example, if you're using v6+, use show={modalOpen} setShow={setModalOpen}.
-       * If using an older version, use open={modalOpen} setOpen={setModalOpen}.
-       * Here we assume the older version with open/setOpen.
-       */}
       <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex="-1">
         <MDBModalDialog>
           <MDBModalContent>

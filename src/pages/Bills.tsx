@@ -14,26 +14,52 @@ import {
   MDBModalTitle,
   MDBModalBody,
   MDBModalFooter,
-  MDBInput
+  MDBInput,
 } from "mdb-react-ui-kit";
 
 // API endpoints
 const API_BASE_URL = "https://aq06k0y8e1.execute-api.eu-west-1.amazonaws.com/dev"; // Bills API
 const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev"; // Household Users API
-const HOUSEHOLD_ID = "house-001";
+const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// Helper function to get the current user from sessionStorage.
-const getCurrentUserFromSession = (): string | null => {
+// 1) Helper: load session data, fetch householdID if missing
+const loadSessionData = async () => {
   const tokensString = sessionStorage.getItem("authTokens");
-  if (tokensString) {
-    try {
-      const tokens = JSON.parse(tokensString);
-      return tokens.userID;
-    } catch (error) {
-      console.error("Error parsing auth tokens:", error);
+  if (!tokensString) return null;
+  try {
+    const tokens = JSON.parse(tokensString);
+
+    // Check if we have everything we need
+    if (!tokens.userID || !tokens.accessToken) {
+      return null; // user not fully authenticated
     }
+
+    // If householdID is missing, call read-user
+    if (!tokens.householdID) {
+      const resp = await fetch(READ_USER_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.accessToken}`,
+        },
+        body: JSON.stringify({ UserID: tokens.userID }),
+      });
+
+      if (!resp.ok) return null;
+      const data = await resp.json();
+
+      tokens.householdID = data.HouseholdID; // or whatever the field name is
+      sessionStorage.setItem("authTokens", JSON.stringify(tokens));
+    }
+
+    return {
+      userID: tokens.userID,
+      householdID: tokens.householdID,
+    };
+  } catch (error) {
+    console.error("Error loading session data:", error);
+    return null;
   }
-  return null;
 };
 
 interface Split {
@@ -67,16 +93,19 @@ interface BillImage {
 }
 
 const BillSplittingPage: React.FC = () => {
+  const [householdID, setHouseholdID] = useState<string | null>(null);
+  const [currentUserID, setCurrentUserID] = useState<string | null>(null);
+
   const [bills, setBills] = useState<Bill[]>([]);
   const [householdUsers, setHouseholdUsers] = useState<HouseholdUser[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Modal and edit state.
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentBill, setCurrentBill] = useState<Bill | null>(null);
-  
+
   // State for new bill.
   const [newBill, setNewBill] = useState<{
     Title: string;
@@ -89,23 +118,38 @@ const BillSplittingPage: React.FC = () => {
     Description: "",
     TotalAmount: "",
     DueBy: "",
-    Members: []
+    Members: [],
   });
-  
+
   // State for image upload.
   const [billImage, setBillImage] = useState<BillImage | null>(null);
-  
-  // State for current user.
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
-  
+
   // State for image modal.
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
   const [currentImageURL, setCurrentImageURL] = useState<string>("");
 
+  // 2) On mount, load session data and store userID/householdID
   useEffect(() => {
-    setCurrentUser(getCurrentUserFromSession());
+    (async () => {
+      const session = await loadSessionData();
+      if (!session) {
+        setError("Could not determine household or user. Please log in.");
+        return;
+      }
+      setHouseholdID(session.householdID);
+      setCurrentUserID(session.userID);
+    })();
   }, []);
 
+  // 3) Fetch data only after we have the householdID
+  useEffect(() => {
+    if (householdID) {
+      fetchBills(householdID);
+      fetchHouseholdUsers(householdID);
+    }
+  }, [householdID]);
+
+  // 4) If we go into edit mode, pre-fill
   useEffect(() => {
     if (editMode && currentBill) {
       const members = currentBill.Members || [];
@@ -114,19 +158,18 @@ const BillSplittingPage: React.FC = () => {
         Description: currentBill.Description,
         TotalAmount: currentBill.TotalAmount,
         DueBy: currentBill.DueBy || "",
-        Members: members
+        Members: members,
       });
     }
   }, [currentBill, editMode]);
-  
-  // Fetch bills.
-  const fetchBills = async () => {
+
+  // ---- Data fetching logic ----
+
+  const fetchBills = async (hid: string) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/bills?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`
-      );
+      const response = await fetch(`${API_BASE_URL}/bills?HouseholdID=${encodeURIComponent(hid)}`);
       const data = await response.json();
       if (response.ok) {
         setBills(data.bills || []);
@@ -140,50 +183,42 @@ const BillSplittingPage: React.FC = () => {
     setLoading(false);
   };
 
-  // Fetch household users.
-  const fetchHouseholdUsers = async () => {
+  const fetchHouseholdUsers = async (hid: string) => {
     try {
       const response = await fetch(
-        `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`
+        `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(hid)}`
       );
       if (!response.ok) throw new Error("Failed to fetch household users");
       const data = await response.json();
       if (Array.isArray(data.users)) {
         setHouseholdUsers(data.users);
-      } else {
-        console.warn("No 'users' array found in response.");
       }
     } catch (err: unknown) {
       console.error("Error fetching household users:", err);
     }
   };
 
-  useEffect(() => {
-    fetchBills();
-    fetchHouseholdUsers();
-  }, []);
+  // ---- Handlers ----
 
-  // Handle member checkbox changes.
   const handleMemberCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
     if (checked) {
-      setNewBill(prev => ({ ...prev, Members: [...prev.Members, value] }));
+      setNewBill((prev) => ({ ...prev, Members: [...prev.Members, value] }));
     } else {
-      setNewBill(prev => ({
+      setNewBill((prev) => ({
         ...prev,
-        Members: prev.Members.filter(member => member !== value)
+        Members: prev.Members.filter((m) => m !== value),
       }));
     }
   };
 
-  // Handle file input changes and convert to base64.
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        // Remove prefix to send only the base64 string.
+        // remove prefix
         const base64Content = result.split(",")[1];
         setBillImage({ file, base64: base64Content });
       };
@@ -191,8 +226,11 @@ const BillSplittingPage: React.FC = () => {
     }
   };
 
-  // Save (add or update) bill.
   const saveBill = async () => {
+    if (!householdID) {
+      alert("No household found. Please re-login.");
+      return;
+    }
     if (!newBill.Title.trim()) {
       alert("Title is required.");
       return;
@@ -207,7 +245,7 @@ const BillSplittingPage: React.FC = () => {
     }
 
     let payload: any = {
-      HouseholdID: HOUSEHOLD_ID,
+      HouseholdID: householdID,
       Title: newBill.Title,
       Description: newBill.Description,
       TotalAmount: newBill.TotalAmount,
@@ -215,38 +253,38 @@ const BillSplittingPage: React.FC = () => {
       Members: newBill.Members,
     };
 
-    // Include image data if available.
     if (billImage) {
       payload.ImageData = billImage.base64;
       payload.ImageContentType = billImage.file.type;
     }
-    
+
     try {
       let response;
       if (editMode && currentBill) {
         response = await fetch(
-          `${API_BASE_URL}/bills/${currentBill.BillID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`,
+          `${API_BASE_URL}/bills/${currentBill.BillID}?HouseholdID=${encodeURIComponent(householdID)}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
           }
         );
       } else {
         response = await fetch(`${API_BASE_URL}/bills`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
       }
+
       if (response.ok) {
-        // Reset state after saving.
+        // reset
         setBillImage(null);
         setNewBill({ Title: "", Description: "", TotalAmount: "", DueBy: "", Members: [] });
         setModalOpen(false);
         setEditMode(false);
         setCurrentBill(null);
-        fetchBills();
+        fetchBills(householdID);
       } else {
         const errData = await response.json();
         alert("Failed to save bill: " + (errData.message || "Unknown error"));
@@ -257,30 +295,27 @@ const BillSplittingPage: React.FC = () => {
     }
   };
 
-  // Open modal for editing a bill.
   const editBill = (bill: Bill) => {
     setEditMode(true);
     setCurrentBill(bill);
-    setNewBill({
-      Title: bill.Title,
-      Description: bill.Description,
-      TotalAmount: bill.TotalAmount,
-      DueBy: bill.DueBy || "",
-      Members: bill.Members || []
-    });
     setModalOpen(true);
   };
 
-  // Delete a bill.
   const deleteBill = async (bill: Bill) => {
+    if (!householdID) {
+      alert("No household found. Please re-login.");
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this bill?")) return;
     try {
       const response = await fetch(
-        `${API_BASE_URL}/bills/${bill.BillID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`,
-        { method: "DELETE" }
+        `${API_BASE_URL}/bills/${bill.BillID}?HouseholdID=${encodeURIComponent(householdID)}`,
+        {
+          method: "DELETE",
+        }
       );
       if (response.ok) {
-        fetchBills();
+        fetchBills(householdID);
       } else {
         alert("Failed to delete bill.");
       }
@@ -290,49 +325,53 @@ const BillSplittingPage: React.FC = () => {
     }
   };
 
-  // Update payment status.
-  // *** FIX: Include ImageURL in payload so that the bill image isn't lost ***
   const updatePaidStatus = async (bill: Bill, newStatus: boolean) => {
-    if (!currentUser) {
+    if (!currentUserID) {
       alert("User not logged in.");
+      return;
+    }
+    if (!householdID) {
+      alert("No household found. Please re-login.");
       return;
     }
     const currentPaid = bill.PaidMembers || [];
     let updatedPaidMembers: string[];
+
     if (newStatus) {
-      updatedPaidMembers = currentPaid.includes(currentUser)
+      updatedPaidMembers = currentPaid.includes(currentUserID)
         ? currentPaid
-        : [...currentPaid, currentUser];
+        : [...currentPaid, currentUserID];
     } else {
-      updatedPaidMembers = currentPaid.filter(uid => uid !== currentUser);
+      updatedPaidMembers = currentPaid.filter((uid) => uid !== currentUserID);
     }
+
     const payload: any = {
-      HouseholdID: HOUSEHOLD_ID,
+      HouseholdID: householdID,
       Title: bill.Title,
       Description: bill.Description,
       TotalAmount: bill.TotalAmount,
       DueBy: bill.DueBy || "",
       Splits: bill.Splits,
       Members: bill.Members || [],
-      PaidMembers: updatedPaidMembers
+      PaidMembers: updatedPaidMembers,
     };
 
-    // Include ImageURL if it exists so the image is not removed.
+    // Keep the image if it exists
     if (bill.ImageURL) {
       payload.ImageURL = bill.ImageURL;
     }
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/bills/${bill.BillID}?HouseholdID=${encodeURIComponent(HOUSEHOLD_ID)}`,
+        `${API_BASE_URL}/bills/${bill.BillID}?HouseholdID=${encodeURIComponent(householdID)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         }
       );
       if (response.ok) {
-        fetchBills();
+        fetchBills(householdID);
       } else {
         const errData = await response.json();
         alert("Failed to update payment status: " + (errData.message || "Unknown error"));
@@ -343,9 +382,7 @@ const BillSplittingPage: React.FC = () => {
     }
   };
 
-  // Open the image modal and log the URL for debugging.
   const handleShowImage = (url: string) => {
-    console.log("Opening Image URL:", url);
     setCurrentImageURL(url);
     setShowImageModal(true);
   };
@@ -355,6 +392,8 @@ const BillSplittingPage: React.FC = () => {
       <Navigation />
       <MDBContainer style={{ marginTop: "2rem" }}>
         <h2>Bill Splitting</h2>
+
+        {/* --- Add Bill Button --- */}
         <MDBRow>
           <MDBCol md="12" className="text-center mb-3">
             <MDBBtn
@@ -370,7 +409,8 @@ const BillSplittingPage: React.FC = () => {
             </MDBBtn>
           </MDBCol>
         </MDBRow>
-  
+
+        {/* --- Existing Bills --- */}
         <MDBRow>
           <MDBCol md="12">
             <h4>Existing Bills</h4>
@@ -382,19 +422,31 @@ const BillSplittingPage: React.FC = () => {
               <p>No bills available</p>
             ) : (
               bills.map((bill) => {
-                const isPaidByCurrent = bill.PaidMembers ? bill.PaidMembers.includes(currentUser || "") : false;
+                const isPaidByCurrent = bill.PaidMembers
+                  ? bill.PaidMembers.includes(currentUserID || "")
+                  : false;
                 return (
                   <MDBCard key={bill.BillID} className="mb-3">
                     <MDBCardBody>
                       <h5>{bill.Title}</h5>
                       <p>{bill.Description}</p>
-                      <p><strong>Total Amount:</strong> {bill.TotalAmount}</p>
-                      {bill.DueBy && <p><strong>Due By:</strong> {bill.DueBy}</p>}
+                      <p>
+                        <strong>Total Amount:</strong> {bill.TotalAmount}
+                      </p>
+                      {bill.DueBy && (
+                        <p>
+                          <strong>Due By:</strong> {bill.DueBy}
+                        </p>
+                      )}
                       {bill.ImageURL && (
                         <div style={{ marginTop: "0.5rem" }}>
-                                        <MDBBtn color="secondary" size="sm" onClick={() => handleShowImage(bill.ImageURL!)}>
-                    Show Bill
-                    </MDBBtn>
+                          <MDBBtn
+                            color="secondary"
+                            size="sm"
+                            onClick={() => handleShowImage(bill.ImageURL!)}
+                          >
+                            Show Bill
+                          </MDBBtn>
                         </div>
                       )}
                       {bill.Splits && (
@@ -402,13 +454,22 @@ const BillSplittingPage: React.FC = () => {
                           <strong>Splits:</strong>
                           <ul>
                             {bill.Splits.map((split, idx) => {
-                              const user = householdUsers.find(u => u.UserID === split.UserID);
+                              const user = householdUsers.find(
+                                (u) => u.UserID === split.UserID
+                              );
                               const displayName = user ? user.Name : split.UserID;
-                              const hasPaid = bill.PaidMembers ? bill.PaidMembers.includes(split.UserID) : split.Paid;
+                              const hasPaid = bill.PaidMembers
+                                ? bill.PaidMembers.includes(split.UserID)
+                                : split.Paid;
                               return (
                                 <li key={idx}>
                                   {displayName}: {split.Share}{" "}
-                                  <span style={{ fontSize: "1.2em", color: hasPaid ? "green" : "red" }}>
+                                  <span
+                                    style={{
+                                      fontSize: "1.2em",
+                                      color: hasPaid ? "green" : "red",
+                                    }}
+                                  >
                                     {hasPaid ? "✔" : "✖"}
                                   </span>
                                 </li>
@@ -441,14 +502,18 @@ const BillSplittingPage: React.FC = () => {
             )}
           </MDBCol>
         </MDBRow>
-  
-        {/* Modal for Adding/Editing a Bill */}
+
+        {/* --- Add/Edit Bill Modal --- */}
         <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex="-1">
           <MDBModalDialog>
             <MDBModalContent>
               <MDBModalHeader>
                 <MDBModalTitle>{editMode ? "Edit Bill" : "Add New Bill"}</MDBModalTitle>
-                <MDBBtn className="btn-close" color="none" onClick={() => setModalOpen(false)}></MDBBtn>
+                <MDBBtn
+                  className="btn-close"
+                  color="none"
+                  onClick={() => setModalOpen(false)}
+                ></MDBBtn>
               </MDBModalHeader>
               <MDBModalBody>
                 <MDBInput
@@ -512,14 +577,18 @@ const BillSplittingPage: React.FC = () => {
             </MDBModalContent>
           </MDBModalDialog>
         </MDBModal>
-  
-        {/* Modal for Viewing Bill Image */}
+
+        {/* --- View Bill Image Modal --- */}
         <MDBModal open={showImageModal} setOpen={setShowImageModal} tabIndex="-1">
           <MDBModalDialog>
             <MDBModalContent>
               <MDBModalHeader>
                 <MDBModalTitle>Bill Image</MDBModalTitle>
-                <MDBBtn className="btn-close" color="none" onClick={() => setShowImageModal(false)}></MDBBtn>
+                <MDBBtn
+                  className="btn-close"
+                  color="none"
+                  onClick={() => setShowImageModal(false)}
+                ></MDBBtn>
               </MDBModalHeader>
               <MDBModalBody className="text-center">
                 {currentImageURL ? (
