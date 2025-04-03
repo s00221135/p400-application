@@ -65,6 +65,10 @@ const Navigation: React.FC = () => {
       pageTitle = "Social Feed";
       pageIcon = "user-group";
       break;
+      case "/notice-board":
+        pageTitle = "Notice Board";
+        pageIcon = "sticky-note"; // or any icon you want
+        break;
     default:
       pageTitle = "Home";
       pageIcon = "home";
@@ -72,7 +76,7 @@ const Navigation: React.FC = () => {
   }
 
   return (
-    <MDBNavbar expand="lg" light bgColor="light" fixed="top">
+    <MDBNavbar expand="lg" light bgColor="light">
       <div className="container-fluid">
         <MDBNavbarBrand style={{ cursor: "pointer" }} onClick={() => navigate("/home")}>
           <MDBIcon fas icon={pageIcon} className="me-2" />
@@ -110,6 +114,11 @@ const Navigation: React.FC = () => {
                   Shopping List
                 </MDBNavbarLink>
               </MDBDropdownItem>
+                          <MDBNavbarItem>
+              <MDBNavbarLink href="/notice-board" className={getActiveClass("/notice-board")}>
+                Notice Board
+              </MDBNavbarLink>
+            </MDBNavbarItem>
               <MDBDropdownItem>
                 <MDBNavbarLink href="/profile" className={getActiveClass("/profile")}>
                   Profile
@@ -154,6 +163,11 @@ const Navigation: React.FC = () => {
                 Social Feed
               </MDBNavbarLink>
             </MDBNavbarItem>
+            <MDBDropdownItem>
+  <MDBNavbarLink href="/notice-board" className={getActiveClass("/notice-board")}>
+    Notice Board
+  </MDBNavbarLink>
+</MDBDropdownItem>
             <MDBNavbarItem>
               <MDBBtn color="danger" size="sm" className="ms-3" onClick={handleLogout}>
                 Log Out

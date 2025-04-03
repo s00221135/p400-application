@@ -19,6 +19,7 @@ import ReserveSharedSpace from "./pages/ReserveSpace";
 import BillSplittingPage from "./pages/Bills";
 import ShoppingListPage from "./pages/ShoppingList"; // Shopping list overview page
 import ShoppingListDetail from "./pages/ShoppingListDetail.tsx"; // Shopping list detail page
+import NoticeBoardPage from "./pages/Noticeboard.tsx";
 
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -138,6 +139,14 @@ const App: React.FC = () => {
               </PrivateRoute>
             }
           />
+          <Route
+    path="/notice-board"
+    element={
+      <PrivateRoute>
+        <NoticeBoardPage />
+      </PrivateRoute>
+    }
+  />
         </Routes>
       </div>
     </Router>
