@@ -4,11 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flatchat</title>
-    <link rel="icon" type="image/png" href="https://s3.eu-west-1.amazonaws.com/www.flatchatapp.com/logo/flatchat_logo_rounded.PNG" />
 
+    <!-- PWA lines -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" type="image/png" href="/flatchat_logo.PNG" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- Instead of the hashed assets, point to your dev entry: -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
