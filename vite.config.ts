@@ -6,30 +6,23 @@ import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfil
 
 export default defineConfig({
   plugins: [react()],
-
-  // Make sure these two sections are included:
   optimizeDeps: {
+    include: ['aws-amplify'],
     esbuildOptions: {
-      // Enable esbuild polyfill plugins
       define: {
-        global: 'globalThis', // or 'window'
+        global: 'globalThis'
       },
       plugins: [
         NodeGlobalsPolyfillPlugin({
           process: true,
-          buffer: true,
-        }),
-      ],
-    },
+          buffer: true
+        })
+      ]
+    }
   },
-
   build: {
     rollupOptions: {
-      plugins: [
-        // Enable rollup polyfills plugin
-        // used during production bundling
-        NodeModulesPolyfillPlugin(),
-      ],
-    },
-  },
+      plugins: [NodeModulesPolyfillPlugin()]
+    }
+  }
 });

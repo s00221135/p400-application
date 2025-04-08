@@ -78,7 +78,7 @@ const Navigation: React.FC = () => {
   return (
     <MDBNavbar expand="lg" light bgColor="light">
       <div className="container-fluid">
-        <MDBNavbarBrand style={{ cursor: "pointer" }} onClick={() => navigate("/home")}>
+        <MDBNavbarBrand style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
           <MDBIcon fas icon={pageIcon} className="me-2" />
           {pageTitle}
         </MDBNavbarBrand>
@@ -90,7 +90,7 @@ const Navigation: React.FC = () => {
             </MDBDropdownToggle>
             <MDBDropdownMenu>
               <MDBDropdownItem>
-                <MDBNavbarLink href="/home" className={getActiveClass("/home")}>
+                <MDBNavbarLink href="/" className={getActiveClass("/")}>
                   Home
                 </MDBNavbarLink>
               </MDBDropdownItem>
@@ -120,6 +120,9 @@ const Navigation: React.FC = () => {
               </MDBNavbarLink>
             </MDBNavbarItem>
               <MDBDropdownItem>
+              <MDBNavbarLink href="/social-feed" className={getActiveClass("/social-feed")}>
+                  Social Feed
+                </MDBNavbarLink>
                 <MDBNavbarLink href="/profile" className={getActiveClass("/profile")}>
                   Profile
                 </MDBNavbarLink>
