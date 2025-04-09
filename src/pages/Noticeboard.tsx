@@ -10,10 +10,17 @@ import {
   MDBBtn,
   MDBInput,
   MDBIcon,
+  MDBModal,
+  MDBModalDialog,
+  MDBModalContent,
+  MDBModalHeader,
+  MDBModalTitle,
+  MDBModalBody,
+  MDBModalFooter,
 } from "mdb-react-ui-kit";
 
 // Adjust to your real endpoints:
-const NOTICE_API_BASE_URL = "https://enyt5vj1nl.execute-api.eu-west-1.amazonaws.com/dev"; 
+const NOTICE_API_BASE_URL = "https://enyt5vj1nl.execute-api.eu-west-1.amazonaws.com/dev";
 const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
 // ----------- 1) fetchSessionData HELPER -----------
@@ -74,13 +81,51 @@ const fetchSessionData = async (): Promise<{
   }
 };
 
-// ---------- 2) NoticeBoardPage Component ----------
 interface Notice {
   NoticeID: string;
   Title?: string;
   Content?: string;
-  CreatedBy?: string;  // now we plan to store the user’s real name
+  CreatedBy?: string;  // we'll store the user's friendly name here
   CreatedAt?: string;
+}
+
+//
+// Helper function to get ordinal suffix (st, nd, rd, th)
+//
+function getOrdinalSuffix(day: number): string {
+  if (day > 3 && day < 21) return "th"; // covers 11th - 13th and similar
+  switch (day % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+//
+// Function to format a date string into "9th April 2025 3:04PM" format
+//
+function formatCreatedAt(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr; // fallback if invalid
+
+  const day = date.getDate();
+  const suffix = getOrdinalSuffix(day);
+  const month = date.toLocaleString("default", { month: "long" });
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  const minuteStr = minutes < 10 ? `0${minutes}` : `${minutes}`;
+
+  return `${day}${suffix} ${month} ${year} ${hours}:${minuteStr}${ampm}`;
 }
 
 const NoticeBoardPage: React.FC = () => {
@@ -93,7 +138,9 @@ const NoticeBoardPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // For new notice
+  // Modal state for adding note
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  // New notice fields
   const [newTitle, setNewTitle] = useState<string>("");
   const [newContent, setNewContent] = useState<string>("");
 
@@ -117,12 +164,14 @@ const NoticeBoardPage: React.FC = () => {
     }
   }, [householdID]);
 
-  // ----------- 3) Fetch Notices -----------
+  // ----------- Fetch Notices -----------
   const fetchNotices = async (hid: string) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${NOTICE_API_BASE_URL}/notices?HouseholdID=${encodeURIComponent(hid)}`);
+      const response = await fetch(
+        `${NOTICE_API_BASE_URL}/notices?HouseholdID=${encodeURIComponent(hid)}`
+      );
       if (!response.ok) {
         const text = await response.text();
         throw new Error(text || "Failed to fetch notices");
@@ -135,7 +184,7 @@ const NoticeBoardPage: React.FC = () => {
     setLoading(false);
   };
 
-  // ----------- 4) Create Notice -----------
+  // ----------- Create Notice -----------
   const addNotice = async () => {
     if (!householdID) {
       alert("No household ID found!");
@@ -150,7 +199,7 @@ const NoticeBoardPage: React.FC = () => {
       HouseholdID: householdID,
       Title: newTitle.trim(),
       Content: newContent.trim(),
-      // *** Instead of userID, store userName to get a friendly name
+      // Instead of storing userID, store userName for a friendly display
       CreatedBy: userName || "Anonymous",
     };
 
@@ -164,9 +213,10 @@ const NoticeBoardPage: React.FC = () => {
         const text = await response.text();
         throw new Error(text || "Failed to create notice");
       }
-      // Clear input fields
+      // Clear input fields and close modal
       setNewTitle("");
       setNewContent("");
+      setModalOpen(false);
       // Refresh the list
       fetchNotices(householdID);
     } catch (err: unknown) {
@@ -174,7 +224,7 @@ const NoticeBoardPage: React.FC = () => {
     }
   };
 
-  // ----------- 5) Delete Notice -----------
+  // ----------- Delete Notice -----------
   const deleteNotice = async (nid: string) => {
     if (!householdID) {
       alert("No household ID found!");
@@ -184,7 +234,9 @@ const NoticeBoardPage: React.FC = () => {
       return;
     }
     try {
-      const url = `${NOTICE_API_BASE_URL}/notices/${nid}?HouseholdID=${encodeURIComponent(householdID)}`;
+      const url = `${NOTICE_API_BASE_URL}/notices/${nid}?HouseholdID=${encodeURIComponent(
+        householdID
+      )}`;
       const response = await fetch(url, { method: "DELETE" });
       if (!response.ok) {
         const text = await response.text();
@@ -197,40 +249,27 @@ const NoticeBoardPage: React.FC = () => {
     }
   };
 
-  // ----------- 6) Render UI -----------
   return (
     <>
       <Navigation />
       <MDBContainer className="mt-5">
         <MDBRow>
           <MDBCol>
-            <h2>Household Notice Board</h2>
-            <p className="text-muted">Share quick updates with your housemates!</p>
+            <h2 className="text-center">Household Notice Board</h2>
+            <p className="text-center text-muted">
+              Share quick updates with your housemates!
+            </p>
           </MDBCol>
         </MDBRow>
 
-        {error && <p className="text-danger">{error}</p>}
-        {loading && <p>Loading notices...</p>}
+        {error && <p className="text-danger text-center">{error}</p>}
+        {loading && <p className="text-center text-muted">Loading notices...</p>}
 
-        {/* Form to add a new notice */}
+        {/* Add Note Button */}
         <MDBRow className="mb-3">
-          <MDBCol md="6" className="mb-3">
-            <MDBInput
-              label="New Notice Title"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-            />
-          </MDBCol>
-          <MDBCol md="6" className="mb-3">
-            <MDBInput
-              label="Notice Content"
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-            />
-          </MDBCol>
-          <MDBCol md="12" className="text-center">
-            <MDBBtn color="primary" onClick={addNotice}>
-              Post Notice
+          <MDBCol className="text-center">
+            <MDBBtn color="primary" onClick={() => setModalOpen(true)}>
+              Add Note
             </MDBBtn>
           </MDBCol>
         </MDBRow>
@@ -251,14 +290,12 @@ const NoticeBoardPage: React.FC = () => {
                 </MDBCardHeader>
                 <MDBCardBody>
                   <p>{notice.Content}</p>
-
-                  {/* If CreatedBy or CreatedAt, show them */}
                   {(notice.CreatedBy || notice.CreatedAt) && (
                     <small className="text-muted">
-                      Posted
-                      {notice.CreatedBy ? ` by ${notice.CreatedBy}` : " by unknown"} 
+                      Posted{" "}
+                      {notice.CreatedBy ? `by ${notice.CreatedBy}` : "by unknown"}{" "}
                       {notice.CreatedAt
-                        ? ` at ${new Date(notice.CreatedAt).toLocaleString()}`
+                        ? `at ${formatCreatedAt(notice.CreatedAt)}`
                         : ""}
                     </small>
                   )}
@@ -268,6 +305,42 @@ const NoticeBoardPage: React.FC = () => {
           ))}
         </MDBRow>
       </MDBContainer>
+
+      {/* Modal for adding a new note */}
+      <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex="-1">
+        <MDBModalDialog>
+          <MDBModalContent>
+            <MDBModalHeader>
+              <MDBModalTitle>Add Note</MDBModalTitle>
+              <MDBBtn className="btn-close" color="none" onClick={() => setModalOpen(false)}></MDBBtn>
+            </MDBModalHeader>
+            <MDBModalBody>
+              <MDBInput
+                label="Note Title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="mb-3"
+              />
+              {/* Instead of MDBInput with textarea prop, use a plain textarea */}
+              <textarea
+                className="form-control mb-3"
+                placeholder="Note Content"
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                rows={4}
+              ></textarea>
+            </MDBModalBody>
+            <MDBModalFooter>
+              <MDBBtn color="secondary" onClick={() => setModalOpen(false)}>
+                Cancel
+              </MDBBtn>
+              <MDBBtn color="primary" onClick={addNotice}>
+                Save Note
+              </MDBBtn>
+            </MDBModalFooter>
+          </MDBModalContent>
+        </MDBModalDialog>
+      </MDBModal>
     </>
   );
 };
