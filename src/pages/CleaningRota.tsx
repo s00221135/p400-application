@@ -19,9 +19,12 @@ import {
 } from "mdb-react-ui-kit";
 
 // 1) The two base URLs remain:
-const TASKS_BASE_URL = "https://nlqi44a390.execute-api.eu-west-1.amazonaws.com/dev";
-const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev";
-const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
+const TASKS_BASE_URL =
+  "https://nlqi44a390.execute-api.eu-west-1.amazonaws.com/dev";
+const USERS_BASE_URL =
+  "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev";
+const READ_USER_URL =
+  "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
 // 2) Helper function to load session data
 const loadSessionData = async () => {
@@ -72,6 +75,32 @@ interface HouseholdUser {
   Email?: string;
 }
 
+// Helper function to get ordinal suffix (st, nd, rd, th)
+function getOrdinalSuffix(day: number): string {
+  if (day > 3 && day < 21) return "th"; // covers 11th to 13th
+  switch (day % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+// Function to format the due date string (e.g., "15th April 2025")
+function formatDueDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr; // if invalid, fallback to original
+
+  const day = date.getDate();
+  const month = date.toLocaleString("default", { month: "long" });
+  const year = date.getFullYear();
+  return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
+}
+
 const CleaningRota: React.FC = () => {
   // 3) Store householdID and userID in state
   const [householdID, setHouseholdID] = useState<string | null>(null);
@@ -120,7 +149,9 @@ const CleaningRota: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const url = `${TASKS_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(hid)}`;
+      const url = `${TASKS_BASE_URL}/tasks?HouseholdID=${encodeURIComponent(
+        hid
+      )}`;
       console.log("📡 Fetching tasks from:", url);
 
       const response = await fetch(url);
@@ -160,7 +191,9 @@ const CleaningRota: React.FC = () => {
 
   const fetchHouseholdUsers = async (hid: string) => {
     try {
-      const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(hid)}`;
+      const url = `${USERS_BASE_URL}/household-users?HouseholdID=${encodeURIComponent(
+        hid
+      )}`;
       console.log("📡 Fetching household users from:", url);
 
       const response = await fetch(url);
@@ -232,7 +265,9 @@ const CleaningRota: React.FC = () => {
     }
     try {
       const response = await fetch(
-        `${TASKS_BASE_URL}/tasks/${taskID}?HouseholdID=${encodeURIComponent(householdID)}`,
+        `${TASKS_BASE_URL}/tasks/${taskID}?HouseholdID=${encodeURIComponent(
+          householdID
+        )}`,
         { method: "DELETE" }
       );
 
@@ -280,7 +315,9 @@ const CleaningRota: React.FC = () => {
         <MDBRow className="justify-content-center">
           <MDBCol xs="12" sm="10" md="8" lg="6">
             <h2 className="text-center">Cleaning Rota</h2>
-            <p className="text-center text-muted">Manage household cleaning tasks</p>
+            <p className="text-center text-muted">
+              Manage household cleaning tasks
+            </p>
 
             {/* Add Task Button */}
             <div className="text-center mb-3">
@@ -303,7 +340,9 @@ const CleaningRota: React.FC = () => {
               </MDBBtn>
             </div>
 
-            {loading && <p className="text-center text-muted">Loading tasks...</p>}
+            {loading && (
+              <p className="text-center text-muted">Loading tasks...</p>
+            )}
             {error && <p className="text-danger text-center">{error}</p>}
 
             {tasks.length === 0 && !loading ? (
@@ -311,8 +350,12 @@ const CleaningRota: React.FC = () => {
             ) : (
               tasks.map((task) => {
                 // Lookup user name for display
-                const assignedUser = householdUsers.find((u) => u.UserID === task.AssignedTo);
-                const displayAssigned = assignedUser ? assignedUser.Name : task.AssignedTo;
+                const assignedUser = householdUsers.find(
+                  (u) => u.UserID === task.AssignedTo
+                );
+                const displayAssigned = assignedUser
+                  ? assignedUser.Name
+                  : task.AssignedTo;
 
                 return (
                   <MDBCard
@@ -328,7 +371,7 @@ const CleaningRota: React.FC = () => {
                         <strong>Frequency:</strong> {task.Frequency}
                       </p>
                       <p>
-                        <strong>Due Date:</strong> {task.DueDate}
+                        <strong>Due Date:</strong> {formatDueDate(task.DueDate)}
                       </p>
 
                       <MDBCheckbox
@@ -378,14 +421,20 @@ const CleaningRota: React.FC = () => {
           <MDBModalContent>
             <MDBModalHeader>
               <MDBModalTitle>{editMode ? "Edit Task" : "Add Task"}</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={() => setModalOpen(false)}></MDBBtn>
+              <MDBBtn
+                className="btn-close"
+                color="none"
+                onClick={() => setModalOpen(false)}
+              ></MDBBtn>
             </MDBModalHeader>
             <MDBModalBody>
               <MDBInput
                 label="Task Title"
                 type="text"
                 value={newTask.Title}
-                onChange={(e) => setNewTask({ ...newTask, Title: e.target.value })}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, Title: e.target.value })
+                }
                 className="mb-3"
               />
               {/* AssignedTo Dropdown */}
@@ -394,7 +443,9 @@ const CleaningRota: React.FC = () => {
                 <select
                   className="form-select"
                   value={newTask.AssignedTo}
-                  onChange={(e) => setNewTask({ ...newTask, AssignedTo: e.target.value })}
+                  onChange={(e) =>
+                    setNewTask({ ...newTask, AssignedTo: e.target.value })
+                  }
                 >
                   <option value="">-- Select a Housemate --</option>
                   {householdUsers.map((user) => (
@@ -408,14 +459,18 @@ const CleaningRota: React.FC = () => {
                 label="Frequency"
                 type="text"
                 value={newTask.Frequency}
-                onChange={(e) => setNewTask({ ...newTask, Frequency: e.target.value })}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, Frequency: e.target.value })
+                }
                 className="mb-3"
               />
               <MDBInput
                 label="Due Date"
                 type="date"
                 value={newTask.DueDate}
-                onChange={(e) => setNewTask({ ...newTask, DueDate: e.target.value })}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, DueDate: e.target.value })
+                }
                 className="mb-3"
               />
             </MDBModalBody>
