@@ -6,7 +6,6 @@ import {
   MDBRow,
   MDBCol,
   MDBBtn,
-  MDBInput,
   MDBCard,
   MDBCardBody,
   MDBCardTitle,
@@ -17,9 +16,14 @@ import {
   MDBDropdownItem,
   MDBIcon,
 } from "mdb-react-ui-kit";
+import TextareaAutosize from "react-textarea-autosize"; // Install via: npm install react-textarea-autosize
 import CreatePostMap from "../components/CreatePostMap";
 
-const API_BASE_URL = "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev"; // Replace with your actual endpoint
+// Ensure your CSS with the auto-resizing rules is imported, e.g.:
+// import "../App.css";
+
+const API_BASE_URL =
+  "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev"; // Replace with your actual endpoint
 const geofenceOptions = [50, 100, 250, 500, 1000, 2000, 5000];
 
 const formatRadius = (radius: number): string =>
@@ -63,11 +67,17 @@ const CreatePostPage: React.FC = () => {
         (position) => {
           setLatitude(position.coords.latitude);
           setLongitude(position.coords.longitude);
-          console.log("✅ Location set at:", position.coords.latitude, position.coords.longitude);
+          console.log(
+            "✅ Location set at:",
+            position.coords.latitude,
+            position.coords.longitude
+          );
         },
         (error) => {
           console.warn("⚠️ Location access error:", error);
-          setErrorMessage("⚠️ Location access denied. Cannot configure geofence.");
+          setErrorMessage(
+            "⚠️ Location access denied. Cannot configure geofence."
+          );
         },
         { enableHighAccuracy: true }
       );
@@ -107,7 +117,7 @@ const CreatePostPage: React.FC = () => {
     const newPost = {
       UserID: userID,
       Content: postContent,
-      Tags: [], // Extend with tag functionality if needed.
+      Tags: [],
       Latitude: latitude,
       Longitude: longitude,
       GeofenceRadius: geofenceRadius,
@@ -145,56 +155,60 @@ const CreatePostPage: React.FC = () => {
       </MDBRow>
 
       <MDBRow className="justify-content-center">
-        <MDBCol md="8">
+        <MDBCol md="10" lg="8">
           <h2 className="text-center mb-4">Create a New Post</h2>
 
           {/* Post Form Card */}
           <MDBCard className="mb-4 shadow-sm">
-            <MDBCardBody>
-              <MDBCardTitle>What's on your mind?</MDBCardTitle>
+            <MDBCardBody className="p-4">
+              <MDBCardTitle className="mb-3">What's on your mind?</MDBCardTitle>
               <form onSubmit={handleSubmit}>
-                <MDBInput
-                  label="Share your thoughts"
-                  type="textarea"
-                  {...({ rows: 4 } as any)}
+                {/* Auto-resizing text area using react-textarea-autosize */}
+                <TextareaAutosize
+                  className="form-control mb-4 auto-resize-textarea"
+                  placeholder="Share your thoughts"
                   value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setPostContent(e.target.value)
+                  }
                   disabled={loading}
-                  className="mb-3"
                 />
 
-                {/* Geofence Radius Dropdown */}
-                <MDBDropdown group className="mb-3">
-                  <MDBDropdownToggle color="info" type="button">
-                    Visibility: {formatRadius(geofenceRadius)}
-                  </MDBDropdownToggle>
-                  <MDBDropdownMenu>
-                    {geofenceOptions.map((radius) => (
-                      <MDBDropdownItem
-                        key={radius}
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setGeofenceRadius(radius);
-                        }}
-                      >
-                        {formatRadius(radius)}
-                      </MDBDropdownItem>
-                    ))}
-                  </MDBDropdownMenu>
-                </MDBDropdown>
+                {/* Flex container for Visibility dropdown & Post button, left-aligned */}
+                <div
+                  className="d-flex align-items-center gap-2 mb-4 w-100 justify-content-start"
+                >
+                  <MDBDropdown>
+                    <MDBDropdownToggle color="info" type="button">
+                      Visibility: {formatRadius(geofenceRadius)}
+                    </MDBDropdownToggle>
+                    <MDBDropdownMenu>
+                      {geofenceOptions.map((radius) => (
+                        <MDBDropdownItem
+                          key={radius}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setGeofenceRadius(radius);
+                          }}
+                        >
+                          {formatRadius(radius)}
+                        </MDBDropdownItem>
+                      ))}
+                    </MDBDropdownMenu>
+                  </MDBDropdown>
 
-                {/* Buttons Row */}
-                <MDBRow className="mb-3 d-flex justify-content-center" style={{ gap: "1rem" }}>
+                  <MDBBtn type="submit" color="primary" disabled={loading}>
+                    {loading ? "Posting..." : "Post"}
+                  </MDBBtn>
+                </div>
+
+                {/* Row: Refresh Location */}
+                <MDBRow className="mb-4 d-flex justify-content-center">
                   <MDBCol md="auto">
                     <MDBBtn color="info" onClick={handleConfigureLocation} type="button">
                       <MDBIcon fas icon="sync-alt" className="me-1" /> Refresh Location
-                    </MDBBtn>
-                  </MDBCol>
-                  <MDBCol md="auto">
-                    <MDBBtn type="submit" color="primary" disabled={loading}>
-                      {loading ? "Posting..." : "Post"}
                     </MDBBtn>
                   </MDBCol>
                 </MDBRow>
@@ -211,15 +225,18 @@ const CreatePostPage: React.FC = () => {
           </MDBCard>
 
           {/* Map Card */}
-          <MDBCard>
-            <MDBCardBody>
+          <MDBCard className="mb-4 shadow-sm">
+            <MDBCardBody className="p-4">
               <MDBCardTitle>Post Visibility Area</MDBCardTitle>
               <MDBCardText className="mb-3">
                 This circle shows how far users can view your post.
               </MDBCardText>
               {latitude && longitude ? (
-                // MapLibre expects the center in [longitude, latitude] format.
-                <CreatePostMap center={[longitude, latitude]} radius={geofenceRadius} height="400px" />
+                <CreatePostMap
+                  center={[longitude, latitude]}
+                  radius={geofenceRadius}
+                  height="400px"
+                />
               ) : (
                 <p className="text-center">Loading your location on the map...</p>
               )}

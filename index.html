@@ -5,14 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flatchat</title>
 
-    <!-- PWA lines -->
+    <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#ffffff" />
+
+    <!-- Favicon & Apple Touch Icon -->
     <link rel="icon" type="image/png" href="/flatchat_logo.PNG" />
+    <link rel="apple-touch-icon" href="/flatchat_logo.PNG" />
+
+    <!-- iOS-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Flatchat" />
   </head>
   <body>
     <div id="root"></div>
-    <!-- Instead of the hashed assets, point to your dev entry: -->
+    <!--
+      In development, reference your source entry (e.g., main.tsx).
+      Vite will transform this during the production build,
+      replacing it with the hashed build asset.
+    -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
