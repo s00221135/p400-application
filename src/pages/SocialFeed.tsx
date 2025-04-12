@@ -257,7 +257,6 @@ const SocialFeed: React.FC = () => {
                     <MDBCardText>
                       <small>{formatDateTime(post.CreatedAt)}</small>
                     </MDBCardText>
-                    <MDBCardText>Tags: {post.Tags.join(", ")}</MDBCardText>
                     <MDBBtn
                       color="danger"
                       size="sm"

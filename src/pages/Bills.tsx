@@ -389,31 +389,36 @@ const BillSplittingPage: React.FC = () => {
 
   return (
     <>
-      <Navigation />
-      <MDBContainer style={{ marginTop: "2rem" }}>
-        <h2>Bill Splitting</h2>
+<Navigation />
+<MDBContainer style={{ marginTop: "2rem" }}>
+  {/* Centered Title */}
+  <MDBRow className="justify-content-center">
+    <MDBCol className="text-center">
+      <h2 style={{ marginBottom: "1rem" }}>Bill Splitting</h2>
+    </MDBCol>
+  </MDBRow>
+  {/* Extra space between title and Add Bill Button */}
+  <MDBRow className="mt-4">
+    <MDBCol md="12" className="text-center">
+      <MDBBtn
+        color="primary"
+        onClick={() => {
+          setEditMode(false);
+          setNewBill({ Title: "", Description: "", TotalAmount: "", DueBy: "", Members: [] });
+          setBillImage(null);
+          setModalOpen(true);
+        }}
+      >
+        Add New Bill
+      </MDBBtn>
+    </MDBCol>
+  </MDBRow>
+  {/* Extra space under Add New Bill Button */}
+  <MDBRow className="mb-4"></MDBRow>
 
-        {/* --- Add Bill Button --- */}
-        <MDBRow>
-          <MDBCol md="12" className="text-center mb-3">
-            <MDBBtn
-              color="primary"
-              onClick={() => {
-                setEditMode(false);
-                setNewBill({ Title: "", Description: "", TotalAmount: "", DueBy: "", Members: [] });
-                setBillImage(null);
-                setModalOpen(true);
-              }}
-            >
-              Add New Bill
-            </MDBBtn>
-          </MDBCol>
-        </MDBRow>
-
-        {/* --- Existing Bills --- */}
+  {/* --- Existing Bills --- */}
         <MDBRow>
           <MDBCol md="12">
-            <h4>Existing Bills</h4>
             {loading ? (
               <p>Loading bills...</p>
             ) : error ? (
