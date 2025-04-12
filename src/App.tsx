@@ -21,6 +21,7 @@ import BillSplittingPage from "./pages/Bills";
 import ShoppingListPage from "./pages/ShoppingList";
 import ShoppingListDetail from "./pages/ShoppingListDetail";
 import NoticeBoardPage from "./pages/Noticeboard";
+import HouseholdSettings from "./pages/HouseholdSettings";
 
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -50,6 +51,7 @@ const App: React.FC = () => {
           <Route path="/shopping-list" element={<PrivateRoute><ShoppingListPage /></PrivateRoute>} />
           <Route path="/shopping-list/:id" element={<PrivateRoute><ShoppingListDetail /></PrivateRoute>} />
           <Route path="/notice-board" element={<PrivateRoute><NoticeBoardPage /></PrivateRoute>} />
+          <Route path="/settings" element={<PrivateRoute><HouseholdSettings /></PrivateRoute>} />
         </Routes>
       </div>
     </Router>

@@ -67,8 +67,12 @@ const Navigation: React.FC = () => {
       break;
       case "/notice-board":
         pageTitle = "Notice Board";
-        pageIcon = "sticky-note"; // or any icon you want
+        pageIcon = "sticky-note"; 
         break;
+        case "/settings":
+          pageTitle = "Settings";
+          pageIcon = "fa-solid fa-gear"; 
+          break;
     default:
       pageTitle = "Home";
       pageIcon = "home";
@@ -127,6 +131,11 @@ const Navigation: React.FC = () => {
                   Profile
                 </MDBNavbarLink>
               </MDBDropdownItem>
+              <MDBNavbarItem>
+              <MDBNavbarLink href="/settings" className={getActiveClass("/settings")}>
+                Settings
+              </MDBNavbarLink>
+            </MDBNavbarItem>
               <MDBDropdownItem>
                 <MDBBtn color="danger" size="sm" className="w-100" onClick={handleLogout}>
                   Log Out
@@ -171,6 +180,11 @@ const Navigation: React.FC = () => {
     Notice Board
   </MDBNavbarLink>
 </MDBDropdownItem>
+<MDBNavbarItem>
+              <MDBNavbarLink href="/settings" className={getActiveClass("/settings")}>
+                Settings
+              </MDBNavbarLink>
+            </MDBNavbarItem>
             <MDBNavbarItem>
               <MDBBtn color="danger" size="sm" className="ms-3" onClick={handleLogout}>
                 Log Out
