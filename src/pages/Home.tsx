@@ -33,6 +33,11 @@ const formatOrdinalDate = (d: Date): string => {
   return `${day}${suffix} ${month}`;
 };
 
+interface BillInfo {
+  Title: string;
+  DueBy?: string;
+}
+
 const Home: React.FC = () => {
   // session & auth
   const [userID, setUserID] = useState<string|null>(null);
@@ -70,7 +75,6 @@ const Home: React.FC = () => {
     if (stored) {
       setHouseholdID(stored);
     } else {
-      // fetch householdID via read-user
       fetch(ENDPOINTS.readUser, {
         method: "POST",
         headers: {
@@ -122,15 +126,15 @@ const Home: React.FC = () => {
         const users: {UserID:string;Name:string}[] = d.users||[];
         const on = await Promise.all(
           users.map(u =>
-            postJson(ENDPOINTS.readUser, {UserID:u.UserID})
+            postJson(ENDPOINTS.readUser, { UserID: u.UserID })
               .then(res => res.DoNotDisturb ? u : null)
               .catch(() => null)
           )
         );
         const onUsers = on.filter((u): u is {UserID:string;Name:string} => !!u);
         if (onUsers.length) {
-          const labels = onUsers.map(u => u.UserID===userID ? "You" : u.Name);
-          const verb = labels.length>1 ? "have" : "has";
+          const labels = onUsers.map(u => u.UserID === userID ? "You" : u.Name);
+          const verb = labels.length > 1 ? "have" : "has";
           setDndStatus(`${labels.join(" and ")} ${verb} DND on`);
         } else {
           setDndStatus("No one has Do Not Disturb on");
@@ -139,20 +143,22 @@ const Home: React.FC = () => {
       .catch(() => setDndStatus("DND status unavailable"))
       .finally(() => setLoadingDnd(false));
 
-    // d) latest notice
+    // d) latest notice (12‑hour)
     fetch(`${ENDPOINTS.notices}?HouseholdID=${householdID}`)
       .then(r => r.json())
       .then(d => {
         const notes = d.notices||[];
         if (notes.length) {
-          const latest = notes.sort((a:any,b:any)=>
+          const latest = notes.sort((a:any,b:any) =>
             new Date(b.CreatedAt).getTime() - new Date(a.CreatedAt).getTime()
           )[0];
-          const by = latest.CreatedBy === currentUserName
-            ? "You"
-            : (latest.CreatedBy||"Someone");
+          const by = latest.CreatedBy === currentUserName ? "You" : (latest.CreatedBy || "Someone");
           const at = new Date(latest.CreatedAt).toLocaleString("default", {
-            day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"
+            day: "numeric",
+            month: "short",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true
           });
           setNoticeText(`${by} left a note at ${at}`);
         } else {
@@ -162,7 +168,7 @@ const Home: React.FC = () => {
       .catch(() => setNoticeText("Notice data unavailable"))
       .finally(() => setLoadingNotice(false));
 
-    // e) upcoming chore (with ordinal date!)
+    // e) upcoming chore (ordinal date)
     fetch(`${ENDPOINTS.tasks}?HouseholdID=${householdID}`)
       .then(r => {
         if (!r.ok) throw new Error();
@@ -170,9 +176,7 @@ const Home: React.FC = () => {
       })
       .then(d => {
         const tasks = Array.isArray(d.tasks) ? d.tasks : [];
-        const mine = tasks.filter((t:any) =>
-          t.AssignedTo === userID && !t.Completed
-        );
+        const mine = tasks.filter((t:any) => t.AssignedTo === userID && !t.Completed);
         if (mine.length) {
           const dueDate = new Date(mine[0].DueDate);
           setChosenChore(
@@ -185,31 +189,25 @@ const Home: React.FC = () => {
       .catch(() => setChosenChore("Chore data unavailable"))
       .finally(() => setLoadingChore(false));
 
-    // f) next reservation
+    // f) next reservation (12‑hour)
     fetch(`${ENDPOINTS.householdUsers}?HouseholdID=${householdID}`)
       .then(r => r.json())
       .then(({ users }) => {
         const m: Record<string,string> = {};
-        (users||[]).forEach((u:any) => m[u.UserID] = u.Name);
+        (users||[]).forEach((u:any)=>m[u.UserID]=u.Name);
         return fetch(`${ENDPOINTS.reservations}?HouseholdID=${householdID}`)
           .then(r => r.json())
           .then(({ reservations }) => {
             const up = (reservations||[])
-              .filter((x:any) => new Date(x.StartTime) > new Date())
-              .sort((a:any,b:any) =>
-                new Date(a.StartTime).getTime() - new Date(b.StartTime).getTime()
-              );
+              .filter((x:any)=>new Date(x.StartTime) > new Date())
+              .sort((a:any,b:any)=>new Date(a.StartTime).getTime() - new Date(b.StartTime).getTime());
             if (up.length) {
               const n = up[0];
-              const who = n.ReservedBy === userID
-                ? "You"
-                : m[n.ReservedBy] || "Someone";
-              const dateTime = new Date(n.StartTime).toLocaleString("default", {
-                day:"numeric", month:"short", hour:"numeric", minute:"2-digit"
+              const who = n.ReservedBy === userID ? "You" : m[n.ReservedBy]||"Someone";
+              const dt = new Date(n.StartTime).toLocaleString("default", {
+                day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true
               });
-              setNextReservation(
-                `Upcoming: ${who} has ${n.SpaceName} reserved for ${dateTime}`
-              );
+              setNextReservation(`Upcoming: ${who} has ${n.SpaceName} reserved for ${dt}`);
             } else {
               setNextReservation("No upcoming reservations");
             }
@@ -225,17 +223,15 @@ const Home: React.FC = () => {
         const d = await r.json();
         return Array.isArray(d.bills) ? d.bills : [];
       })
-      .then(arr => {
+      .then((arr: BillInfo[]) => {
         if (arr.length === 0) {
           setNextBill("No upcoming bills");
           return;
         }
-        arr.sort((a,b) =>
-          new Date(a.DueBy!).getTime() - new Date(b.DueBy!).getTime()
-        );
-        const b = arr[0];
-        const due = new Date(b.DueBy!);
-        setNextBill(`${b.Title} due on ${formatOrdinalDate(due)}`);
+        arr.sort((a,b) => new Date(a.DueBy!).getTime() - new Date(b.DueBy!).getTime());
+        const b0 = arr[0];
+        const due = new Date(b0.DueBy!);
+        setNextBill(`${b0.Title} due on ${formatOrdinalDate(due)}`);
       })
       .catch(() => setNextBill("No upcoming bills"))
       .finally(() => setLoadingBill(false));
@@ -269,8 +265,7 @@ const Home: React.FC = () => {
 
         {/* Widgets */}
         <MDBRow className="g-4">
-
-          {/* Do Not Disturb */}
+          {/* Do Not Disturb 🌙 */}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -278,14 +273,18 @@ const Home: React.FC = () => {
               color: "white",
               boxShadow: "0 0 10px rgba(0,0,0,0.1)"
             }}>
-              <MDBCardTitle style={{ fontSize: "1.5rem" }}>Do Not Disturb</MDBCardTitle>
+              <MDBCardTitle style={{ fontSize: "1.5rem" }}>
+                Do Not Disturb 🌙
+              </MDBCardTitle>
               <MDBCardText tag="div">
-                {loadingDnd ? <MDBSpinner size="sm"/> : dndStatus}
+                {loadingDnd
+                  ? <MDBSpinner size="sm"/>
+                  : dndStatus}
               </MDBCardText>
             </MDBCard>
           </MDBCol>
 
-          {/* Reserved Spaces */}
+          {/* Reserved Spaces 🏠 */}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -293,14 +292,16 @@ const Home: React.FC = () => {
               color: "white",
               boxShadow: "0 0 10px rgba(0,0,0,0.1)"
             }}>
-              <MDBCardTitle style={{ fontSize: "1.5rem" }}>Reserved Spaces</MDBCardTitle>
+              <MDBCardTitle style={{ fontSize: "1.5rem" }}>
+                Reserved Spaces 🏠
+              </MDBCardTitle>
               <MDBCardText tag="div">
                 {loadingResv ? <MDBSpinner size="sm"/> : nextReservation}
               </MDBCardText>
             </MDBCard>
           </MDBCol>
 
-          {/* Upcoming Chores */}
+          {/* Upcoming Chores 🧹 */}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -308,58 +309,65 @@ const Home: React.FC = () => {
               color: "white",
               boxShadow: "0 0 10px rgba(0,0,0,0.1)"
             }}>
-              <MDBCardTitle style={{ fontSize: "1.5rem" }}>Upcoming Chores</MDBCardTitle>
+              <MDBCardTitle style={{ fontSize: "1.5rem" }}>
+                Upcoming Chores 🧹
+              </MDBCardTitle>
               <MDBCardText tag="div">
                 {loadingChore ? <MDBSpinner size="sm"/> : chosenChore}
               </MDBCardText>
             </MDBCard>
           </MDBCol>
 
-          {/* Bills */}
+          {/* Bills 💸 */}
           <MDBCol md="6">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
               backgroundColor: "#FFF3E0",
               boxShadow: "0 0 10px rgba(0,0,0,0.1)"
             }}>
-              <MDBCardTitle style={{ fontSize: "1.5rem", color: "#333" }}>Bills</MDBCardTitle>
+              <MDBCardTitle style={{ fontSize: "1.5rem", color: "#333" }}>
+                Bills 💸
+              </MDBCardTitle>
               <MDBCardText tag="div" style={{ color: "#555" }}>
                 {loadingBill ? <MDBSpinner size="sm"/> : nextBill}
               </MDBCardText>
             </MDBCard>
           </MDBCol>
 
-          {/* Notice Board */}
+          {/* Notice Board 📝 */}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
               backgroundColor: "#FFECb3",
               boxShadow: "0 0 10px rgba(0,0,0,0.1)"
             }}>
-              <MDBCardTitle style={{ fontSize: "1.5rem", color: "#333" }}>Notice Board</MDBCardTitle>
+              <MDBCardTitle style={{ fontSize: "1.5rem", color: "#333" }}>
+                Notice Board 📝
+              </MDBCardTitle>
               <MDBCardText tag="div" style={{ color: "#555" }}>
                 {loadingNotice ? <MDBSpinner size="sm"/> : noticeText}
               </MDBCardText>
             </MDBCard>
           </MDBCol>
 
-          {/* Social Feed */}
+          {/* Social Feed 💬 */}
           <MDBCol md="6">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
               backgroundColor: "#ede7f6",
               boxShadow: "0 0 10px rgba(0,0,0,0.1)"
             }}>
-              <MDBCardTitle style={{ fontSize: "1.5rem", color: "#333" }}>Social Feed</MDBCardTitle>
+              <MDBCardTitle style={{ fontSize: "1.5rem", color: "#333" }}>
+                Social Feed 💬
+              </MDBCardTitle>
               <MDBCardText style={{ color: "#555" }}>
-                Catch up on the latest happenings, fun stories, and community updates!
+                Proximity‑based social feed: see updates from neighbors and roommates near you!
               </MDBCardText>
               <MDBBtn color="dark" className="w-100" onClick={()=>window.location.href="/social-feed"}>
                 Go to Social Feed
               </MDBBtn>
             </MDBCard>
           </MDBCol>
-
         </MDBRow>
       </MDBContainer>
     </>
