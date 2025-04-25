@@ -18,7 +18,6 @@ import {
   MDBCheckbox,
 } from "mdb-react-ui-kit";
 
-// 1) The two base URLs remain:
 const TASKS_BASE_URL =
   "https://nlqi44a390.execute-api.eu-west-1.amazonaws.com/dev";
 const USERS_BASE_URL =
@@ -26,7 +25,7 @@ const USERS_BASE_URL =
 const READ_USER_URL =
   "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// 2) Helper function to load session data
+// Helper function to load session data
 const loadSessionData = async () => {
   const tokensString = sessionStorage.getItem("authTokens");
   if (!tokensString) return null;
@@ -63,7 +62,7 @@ const loadSessionData = async () => {
 interface Task {
   TaskID: string;
   Title: string;
-  AssignedTo: string; // We'll store the user's ID here
+  AssignedTo: string; // Stores the user's ID here
   Frequency: string;
   DueDate: string;
   Completed: boolean;
@@ -75,9 +74,8 @@ interface HouseholdUser {
   Email?: string;
 }
 
-// Helper function to get ordinal suffix (st, nd, rd, th)
 function getOrdinalSuffix(day: number): string {
-  if (day > 3 && day < 21) return "th"; // covers 11th to 13th
+  if (day > 3 && day < 21) return "th"; 
   switch (day % 10) {
     case 1:
       return "st";
@@ -90,10 +88,9 @@ function getOrdinalSuffix(day: number): string {
   }
 }
 
-// Function to format the due date string (e.g., "15th April 2025")
 function formatDueDate(dateStr: string): string {
   const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr; // if invalid, fallback to original
+  if (isNaN(date.getTime())) return dateStr; 
 
   const day = date.getDate();
   const month = date.toLocaleString("default", { month: "long" });
@@ -102,7 +99,6 @@ function formatDueDate(dateStr: string): string {
 }
 
 const CleaningRota: React.FC = () => {
-  // 3) Store householdID and userID in state
   const [householdID, setHouseholdID] = useState<string | null>(null);
   const [userID, setUserID] = useState<string | null>(null);
 
@@ -111,7 +107,6 @@ const CleaningRota: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal states
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
@@ -124,7 +119,6 @@ const CleaningRota: React.FC = () => {
     Completed: false,
   });
 
-  // 4) On mount, load session data
   useEffect(() => {
     (async () => {
       const session = await loadSessionData();
@@ -137,7 +131,7 @@ const CleaningRota: React.FC = () => {
     })();
   }, []);
 
-  // 5) Only fetch tasks + users after we have a householdID
+  // Only fetches tasks + users after we have a householdID
   useEffect(() => {
     if (householdID) {
       fetchTasks(householdID);

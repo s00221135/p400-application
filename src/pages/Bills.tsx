@@ -17,19 +17,16 @@ import {
   MDBInput,
 } from "mdb-react-ui-kit";
 
-// API endpoints
-const API_BASE_URL = "https://aq06k0y8e1.execute-api.eu-west-1.amazonaws.com/dev"; // Bills API
-const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev"; // Household Users API
+const API_BASE_URL = "https://aq06k0y8e1.execute-api.eu-west-1.amazonaws.com/dev"; 
+const USERS_BASE_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev"; 
 const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// 1) Helper: load session data, fetch householdID if missing
+// Loads session data, fetch householdID if missing
 const loadSessionData = async () => {
   const tokensString = sessionStorage.getItem("authTokens");
   if (!tokensString) return null;
   try {
     const tokens = JSON.parse(tokensString);
-
-    // Check if we have everything we need
     if (!tokens.userID || !tokens.accessToken) {
       return null; // user not fully authenticated
     }
@@ -48,7 +45,7 @@ const loadSessionData = async () => {
       if (!resp.ok) return null;
       const data = await resp.json();
 
-      tokens.householdID = data.HouseholdID; // or whatever the field name is
+      tokens.householdID = data.HouseholdID;
       sessionStorage.setItem("authTokens", JSON.stringify(tokens));
     }
 
@@ -86,7 +83,6 @@ interface HouseholdUser {
   Email?: string;
 }
 
-// Extend file state to hold both file object and base64 string.
 interface BillImage {
   file: File;
   base64: string;
@@ -101,12 +97,10 @@ const BillSplittingPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal and edit state.
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentBill, setCurrentBill] = useState<Bill | null>(null);
 
-  // State for new bill.
   const [newBill, setNewBill] = useState<{
     Title: string;
     Description: string;
@@ -121,14 +115,11 @@ const BillSplittingPage: React.FC = () => {
     Members: [],
   });
 
-  // State for image upload.
   const [billImage, setBillImage] = useState<BillImage | null>(null);
 
-  // State for image modal.
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
   const [currentImageURL, setCurrentImageURL] = useState<string>("");
 
-  // 2) On mount, load session data and store userID/householdID
   useEffect(() => {
     (async () => {
       const session = await loadSessionData();
@@ -141,7 +132,6 @@ const BillSplittingPage: React.FC = () => {
     })();
   }, []);
 
-  // 3) Fetch data only after we have the householdID
   useEffect(() => {
     if (householdID) {
       fetchBills(householdID);
@@ -149,7 +139,6 @@ const BillSplittingPage: React.FC = () => {
     }
   }, [householdID]);
 
-  // 4) If we go into edit mode, pre-fill
   useEffect(() => {
     if (editMode && currentBill) {
       const members = currentBill.Members || [];
@@ -162,8 +151,6 @@ const BillSplittingPage: React.FC = () => {
       });
     }
   }, [currentBill, editMode]);
-
-  // ---- Data fetching logic ----
 
   const fetchBills = async (hid: string) => {
     setLoading(true);
@@ -198,8 +185,6 @@ const BillSplittingPage: React.FC = () => {
     }
   };
 
-  // ---- Handlers ----
-
   const handleMemberCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
     if (checked) {
@@ -218,7 +203,6 @@ const BillSplittingPage: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        // remove prefix
         const base64Content = result.split(",")[1];
         setBillImage({ file, base64: base64Content });
       };
@@ -278,7 +262,6 @@ const BillSplittingPage: React.FC = () => {
       }
 
       if (response.ok) {
-        // reset
         setBillImage(null);
         setNewBill({ Title: "", Description: "", TotalAmount: "", DueBy: "", Members: [] });
         setModalOpen(false);
@@ -356,7 +339,6 @@ const BillSplittingPage: React.FC = () => {
       PaidMembers: updatedPaidMembers,
     };
 
-    // Keep the image if it exists
     if (bill.ImageURL) {
       payload.ImageURL = bill.ImageURL;
     }
@@ -391,13 +373,11 @@ const BillSplittingPage: React.FC = () => {
     <>
 <Navigation />
 <MDBContainer style={{ marginTop: "2rem" }}>
-  {/* Centered Title */}
   <MDBRow className="justify-content-center">
     <MDBCol className="text-center">
       <h2 style={{ marginBottom: "1rem" }}>Bill Splitting</h2>
     </MDBCol>
   </MDBRow>
-  {/* Extra space between title and Add Bill Button */}
   <MDBRow className="mt-4">
     <MDBCol md="12" className="text-center">
       <MDBBtn
@@ -413,10 +393,8 @@ const BillSplittingPage: React.FC = () => {
       </MDBBtn>
     </MDBCol>
   </MDBRow>
-  {/* Extra space under Add New Bill Button */}
   <MDBRow className="mb-4"></MDBRow>
 
-  {/* --- Existing Bills --- */}
         <MDBRow>
           <MDBCol md="12">
             {loading ? (

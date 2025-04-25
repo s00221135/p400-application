@@ -1,4 +1,3 @@
-// src/pages/CreatePostPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,14 +15,11 @@ import {
   MDBDropdownItem,
   MDBIcon,
 } from "mdb-react-ui-kit";
-import TextareaAutosize from "react-textarea-autosize"; // Install via: npm install react-textarea-autosize
+import TextareaAutosize from "react-textarea-autosize";
 import CreatePostMap from "../components/CreatePostMap";
 
-// Ensure your CSS with the auto-resizing rules is imported, e.g.:
-// import "../App.css";
-
 const API_BASE_URL =
-  "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev"; // Replace with your actual endpoint
+  "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev";
 const geofenceOptions = [50, 100, 250, 500, 1000, 2000, 5000];
 
 const formatRadius = (radius: number): string =>
@@ -32,20 +28,16 @@ const formatRadius = (radius: number): string =>
 const CreatePostPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // Form state
   const [postContent, setPostContent] = useState("");
   const [geofenceRadius, setGeofenceRadius] = useState<number>(500);
 
-  // Location state
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
-  // UI state
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Dynamic userID from sessionStorage
   const getUserId = (): string | null => {
     const tokensString = sessionStorage.getItem("authTokens");
     if (tokensString) {
@@ -86,7 +78,6 @@ const CreatePostPage: React.FC = () => {
     }
   };
 
-  // Automatically configure location on mount.
   useEffect(() => {
     handleConfigureLocation();
   }, []);
@@ -163,7 +154,6 @@ const CreatePostPage: React.FC = () => {
             <MDBCardBody className="p-4">
               <MDBCardTitle className="mb-3">What's on your mind?</MDBCardTitle>
               <form onSubmit={handleSubmit}>
-                {/* Auto-resizing text area using react-textarea-autosize */}
                 <TextareaAutosize
                   className="form-control mb-4 auto-resize-textarea"
                   placeholder="Share your thoughts"
@@ -174,7 +164,6 @@ const CreatePostPage: React.FC = () => {
                   disabled={loading}
                 />
 
-                {/* Flex container for Visibility dropdown & Post button, left-aligned */}
                 <div
                   className="d-flex align-items-center gap-2 mb-4 w-100 justify-content-start"
                 >

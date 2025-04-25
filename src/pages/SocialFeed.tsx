@@ -1,4 +1,3 @@
-// src/pages/SocialFeed.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -42,7 +41,6 @@ const getOrdinalSuffix = (n: number): string => {
   return "th";
 };
 
-// Helper to format date/time as "1st March 2025, 3:04 PM"
 const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
   const day = date.getDate();
@@ -80,7 +78,6 @@ const SocialFeed: React.FC = () => {
   const [selectedRadius, setSelectedRadius] = useState<number>(500);
   const [error, setError] = useState<string | null>(null);
 
-  // Request the user's location on component mount.
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -106,7 +103,7 @@ const SocialFeed: React.FC = () => {
     try {
       let url = `${API_BASE_URL}/get-posts?radius=${radius}`;
       if (lat !== null && lon !== null) {
-        // Use proper keys expected by your Lambda ("Latitude" and "Longitude").
+        // Use proper keys expected by Lambda ("Latitude" and "Longitude").
         url += `&Latitude=${lat}&Longitude=${lon}`;
       }
       const response = await fetch(url);

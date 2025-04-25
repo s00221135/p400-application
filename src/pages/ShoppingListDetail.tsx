@@ -14,22 +14,15 @@ import {
   MDBIcon,
 } from "mdb-react-ui-kit";
 
-// Update with your API endpoint and read-user endpoint
 const API_BASE_URL = "https://ixbggm0iid.execute-api.eu-west-1.amazonaws.com/dev";
 const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-/**
- * Helper: Retrieve householdID and user's actual Name from sessionStorage.
- * If the token does not have a "Name" property, fetch the user profile
- * from the read-user endpoint and then store the actual name.
- */
 const fetchSessionData = async (): Promise<{ householdID: string | null; userName: string | null }> => {
   const tokensString = sessionStorage.getItem("authTokens");
   if (!tokensString) return { householdID: null, userName: null };
   try {
     const tokens = JSON.parse(tokensString);
     let householdID = tokens.householdID || null;
-    // Prefer tokens.Name (actual full name) if available; if not, then tokens.username
     let userName = tokens.Name || tokens.username || null;
     // If userName is still null or looks like an email address, try to fetch profile from read-user endpoint
     if (!userName || userName.includes("@")) {
@@ -45,9 +38,7 @@ const fetchSessionData = async (): Promise<{ householdID: string | null; userNam
         });
         if (response.ok) {
           const data = await response.json();
-          // Assume the read-user endpoint returns a property called "Name"
           userName = data.Name || userName;
-          // Also, update householdID if missing
           if (!householdID && data.HouseholdID) {
             householdID = data.HouseholdID;
           }
@@ -87,11 +78,9 @@ const ShoppingListDetail: React.FC = () => {
   const [shoppingList, setShoppingList] = useState<ShoppingList | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Local state for adding a new item
+
   const [newItemName, setNewItemName] = useState<string>("");
 
-  // Load session data (householdID and userName) on mount
   useEffect(() => {
     async function loadSession() {
       const { householdID, userName } = await fetchSessionData();
@@ -105,7 +94,6 @@ const ShoppingListDetail: React.FC = () => {
     loadSession();
   }, []);
 
-  // Fetch shopping list details from the API
   const fetchShoppingList = async () => {
     if (!householdID || !id) return;
     setLoading(true);

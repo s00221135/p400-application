@@ -14,7 +14,6 @@ import {
 const API_BASE_URL = "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev";
 const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// Helper function to get the ordinal suffix for a day.
 const getOrdinalSuffix = (n: number): string => {
   const j = n % 10,
     k = n % 100;
@@ -24,16 +23,13 @@ const getOrdinalSuffix = (n: number): string => {
   return "th";
 };
 
-// Helper function to format the date/time into "1st March 2025, 3:04 PM"
 const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
   const day = date.getDate();
   const suffix = getOrdinalSuffix(day);
-  // Get full month name using Intl
   const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(date);
   const year = date.getFullYear();
 
-  // Format time in 12-hour format.
   let hours = date.getHours();
   const minutes = date.getMinutes();
   const ampm = hours >= 12 ? "PM" : "AM";
@@ -73,7 +69,6 @@ const ViewPost: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentUserID, setCurrentUserID] = useState<string | null>(null);
 
-  // On mount, load current user ID from sessionStorage.
   useEffect(() => {
     const tokensString = sessionStorage.getItem("authTokens");
     if (tokensString) {
@@ -117,7 +112,6 @@ const ViewPost: React.FC = () => {
     fetchPostAndComments();
   }, [postId]);
 
-  // After fetching the post, if College or AreaOfStudy is missing, fetch user details.
   useEffect(() => {
     const fetchAuthorDetails = async () => {
       if (post && (!post.College || !post.AreaOfStudy)) {
@@ -189,11 +183,10 @@ const ViewPost: React.FC = () => {
       const response = await fetch(`${API_BASE_URL}/create-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Replace with dynamic user info as needed.
         body: JSON.stringify({
           PostID: postId,
           Content: newComment,
-          UserID: "12345-abcde", // Replace with actual dynamic info.
+          UserID: "12345-abcde", 
         }),
       });
 
@@ -202,7 +195,7 @@ const ViewPost: React.FC = () => {
       const newCommentData: Comment = {
         CommentID: crypto.randomUUID(),
         Content: newComment,
-        Author: "User123", // Replace with actual author if available.
+        Author: "User123", 
         CreatedAt: new Date().toISOString(),
       };
 

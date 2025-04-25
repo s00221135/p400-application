@@ -13,18 +13,14 @@ import {
 } from "mdb-react-ui-kit";
 import { useNavigate } from "react-router-dom";
 
-// ****************************************************************
-// 1) Endpoint URLs – update these for your API Gateway
-// ****************************************************************
 const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 const GET_HOUSEHOLD_INFO_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev/join-household";
 const LIST_USERS_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev/household-users";
 const MANAGE_HOUSEHOLD_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev/household-users";
 const REMOVE_USER_URL = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev/household-users";
 
-// ****************************************************************
-// 2) Helper: loadSessionData – retrieves userID and householdID from session storage
-// ****************************************************************
+// loadSessionData – retrieves userID and householdID from session storage
+
 async function loadSessionData(): Promise<{
   userID: string;
   householdID: string;
@@ -59,22 +55,15 @@ async function loadSessionData(): Promise<{
   }
 }
 
-// ****************************************************************
-// 3) Interface for HouseholdUser
-// ****************************************************************
 interface HouseholdUser {
   UserID: string;
   Name: string;
   Email?: string;
 }
 
-// ****************************************************************
-// 4) HouseholdSettings Component
-// ****************************************************************
 const HouseholdSettings: React.FC = () => {
   const navigate = useNavigate();
 
-  // Session-based data
   const [currentUserID, setCurrentUserID] = useState<string | null>(null);
   const [householdID, setHouseholdID] = useState<string | null>(null);
 
@@ -87,7 +76,6 @@ const HouseholdSettings: React.FC = () => {
   const [members, setMembers] = useState<HouseholdUser[]>([]);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  // UI states
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,9 +83,6 @@ const HouseholdSettings: React.FC = () => {
   const [showRenameForm, setShowRenameForm] = useState(false);
   const [newHouseholdName, setNewHouseholdName] = useState("");
 
-  // ****************************************************************
-  // On mount, load session data
-  // ****************************************************************
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -118,9 +103,7 @@ const HouseholdSettings: React.FC = () => {
     })();
   }, []);
 
-  // ****************************************************************
-  // When householdID and userID are available, fetch household info and users
-  // ****************************************************************
+  // When householdID and userID are available fetches household info and users
   useEffect(() => {
     if (householdID && currentUserID) {
       fetchHouseholdInfo(householdID, currentUserID);
@@ -128,9 +111,6 @@ const HouseholdSettings: React.FC = () => {
     }
   }, [householdID, currentUserID]);
 
-  // ****************************************************************
-  // fetchHouseholdInfo: POST /join-household
-  // ****************************************************************
   const fetchHouseholdInfo = async (hid: string, userID: string) => {
     setLoading(true);
     setError(null);
@@ -156,9 +136,6 @@ const HouseholdSettings: React.FC = () => {
     setLoading(false);
   };
 
-  // ****************************************************************
-  // fetchHouseholdUsers: GET /household-users?HouseholdID=...
-  // ****************************************************************
   const fetchHouseholdUsers = async (hid: string) => {
     setLoading(true);
     setError(null);
@@ -180,9 +157,6 @@ const HouseholdSettings: React.FC = () => {
     setLoading(false);
   };
 
-  // ****************************************************************
-  // removeUser: DELETE /household-users
-  // ****************************************************************
   const removeUser = async (targetUserID: string) => {
     if (!householdID || !currentUserID) return;
     if (!window.confirm("Are you sure you want to remove this user?")) {
@@ -213,9 +187,6 @@ const HouseholdSettings: React.FC = () => {
     setLoading(false);
   };
 
-  // ****************************************************************
-  // handleGrantAdmin: POST /household-users, Action = "grant"
-  // ****************************************************************
   const handleGrantAdmin = async (targetUserID: string) => {
     if (!householdID || !currentUserID) return;
     setLoading(true);
@@ -245,9 +216,6 @@ const HouseholdSettings: React.FC = () => {
     setLoading(false);
   };
 
-  // ****************************************************************
-  // handleRevokeAdmin: POST /household-users, Action = "revoke"
-  // ****************************************************************
   const handleRevokeAdmin = async (targetUserID: string) => {
     if (!householdID || !currentUserID) return;
     setLoading(true);
@@ -277,9 +245,6 @@ const HouseholdSettings: React.FC = () => {
     setLoading(false);
   };
 
-  // ****************************************************************
-  // handleRegenerateCode: POST /household-users, Action = "regenerate"
-  // ****************************************************************
   const handleRegenerateCode = async () => {
     if (!householdID || !currentUserID) return;
     setLoading(true);
@@ -307,9 +272,6 @@ const HouseholdSettings: React.FC = () => {
     setLoading(false);
   };
 
-  // ****************************************************************
-  // renameHousehold: POST /household-users, Action = "rename"
-  // ****************************************************************
   const renameHousehold = async () => {
     if (!householdID || !currentUserID || !newHouseholdName.trim()) {
       return;
@@ -340,9 +302,6 @@ const HouseholdSettings: React.FC = () => {
     setLoading(false);
   };
 
-  // ****************************************************************
-  // Render the Settings Page with a Back Button at the top
-  // ****************************************************************
   return (
     <>
       <Navigation />

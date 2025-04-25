@@ -1,4 +1,3 @@
-// src/pages/Register.tsx
 import React, { useState } from "react";
 import {
   MDBContainer,
@@ -18,7 +17,6 @@ interface RegisterFormData {
   confirmPassword: string;
 }
 
-// Helper to call your create-user API
 async function createUserInDynamo(userData: any) {
   try {
     const response = await fetch("https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/create-user", {
@@ -53,7 +51,6 @@ const Register: React.FC = () => {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Basic validation
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
       alert("All fields are required.");
       return;
@@ -63,7 +60,7 @@ const Register: React.FC = () => {
       return;
     }
 
-    // Cognito standard attributes: "name" and "email"
+    // Cognito attributes: name and email
     const attributeList = [
       new CognitoUserAttribute({ Name: "name", Value: formData.name }),
       new CognitoUserAttribute({ Name: "email", Value: formData.email }),
@@ -78,7 +75,6 @@ const Register: React.FC = () => {
         console.log("Registration success:", data);
         alert("Registration successful! Check your email for confirmation if required.");
 
-        // data.userSub is the Cognito 'sub' (unique user ID)
         const userId = data?.userSub;
         if (userId) {
           // Create user in DynamoDB
@@ -91,7 +87,6 @@ const Register: React.FC = () => {
             HouseholdID: null,
             AreaOfStudy: "Unknown",
             College: "Unknown",
-            // Note: We store a placeholder password since Cognito handles authentication.
             Password: "StoredInCognito",
           });
         }

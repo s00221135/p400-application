@@ -23,7 +23,6 @@ const RESERVATIONS_BASE_URL = "https://ikq4o2e4c1.execute-api.eu-west-1.amazonaw
 const USERS_BASE_URL        = "https://kw9gdp96hl.execute-api.eu-west-1.amazonaws.com/dev";
 const READ_USER_URL         = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// Helper: Retrieve session data and fetch householdID if missing.
 const loadSessionData = async (
   navigate: any
 ): Promise<{ householdID: string; userID: string; userName: string } | null> => {
@@ -63,7 +62,6 @@ const loadSessionData = async (
   }
 };
 
-// Helper to format datetime
 const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
   const opts: Intl.DateTimeFormatOptions = {
@@ -344,7 +342,6 @@ const ReserveSharedSpace: React.FC = () => {
         </MDBRow>
       </MDBContainer>
 
-      {/* **Use `open` & `setOpen` so the modal actually appears** */}
       <MDBModal open={modalOpen} setOpen={setModalOpen} tabIndex={-1}>
         <MDBModalDialog>
           <MDBModalContent>

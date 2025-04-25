@@ -9,7 +9,6 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Uncomment this if you want to see the service worker in development
       // devOptions: { enabled: true },
       manifest: {
         name: 'Flatchat Household Management',

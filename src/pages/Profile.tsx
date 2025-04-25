@@ -41,10 +41,8 @@ const Profile: React.FC = () => {
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
-  // Fetch user data on component mount
   useEffect(() => {
     const fetchUser = async () => {
-      // Use sessionStorage instead of localStorage
       const tokensString = sessionStorage.getItem("authTokens");
       const tokens = tokensString ? JSON.parse(tokensString) : null;
       const accessToken = tokens?.accessToken;
@@ -65,7 +63,6 @@ const Profile: React.FC = () => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${accessToken}`,
             },
-            // Send the userID in the body so the Lambda can find the record
             body: JSON.stringify({ UserID: userID }),
           }
         );
@@ -106,7 +103,6 @@ const Profile: React.FC = () => {
     fetchUser();
   }, [navigate]);
 
-  // Open edit modal and prefill with current user data
   const openEditModal = () => {
     setEditedUser(user);
     setEditModalOpen(true);
@@ -116,7 +112,6 @@ const Profile: React.FC = () => {
     setEditModalOpen(false);
   };
 
-  // Handle changes in the edit modal inputs
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (editedUser) {
       setEditedUser({ ...editedUser, [e.target.name]: e.target.value });
@@ -148,12 +143,11 @@ const Profile: React.FC = () => {
       const response = await fetch(
         "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/update-user",
         {
-          method: "PUT", // Ensure this matches your API Gateway method for update
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          // Send the entire editedUser object (which should include UserID)
           body: JSON.stringify(editedUser),
         }
       );
@@ -167,8 +161,6 @@ const Profile: React.FC = () => {
       const updatedData = await response.json();
       console.log("Updated User Data:", updatedData);
 
-      // Adjust according to your Lambda response structure.
-      // Example assumes it might return "UpdatedItem" or the entire user object directly.
       setUser(updatedData.UpdatedItem || updatedData);
       setEditModalOpen(false);
     } catch (error) {

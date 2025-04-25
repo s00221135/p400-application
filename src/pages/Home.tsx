@@ -21,7 +21,6 @@ const ENDPOINTS = {
   bills:          "https://aq06k0y8e1.execute-api.eu-west-1.amazonaws.com/dev/bills"
 };
 
-// helper to get ordinal suffix on a day
 const formatOrdinalDate = (d: Date): string => {
   const day = d.getDate();
   const month = d.toLocaleString("default", { month: "short" });
@@ -64,7 +63,7 @@ const Home: React.FC = () => {
   const [nextBill, setNextBill] = useState("");
   const [loadingBill, setLoadingBill] = useState(true);
 
-  // 1) on mount, pull tokens + householdID
+  // pull tokens + householdID
   useEffect(() => {
     const tok = sessionStorage.getItem("authTokens") || localStorage.getItem("authTokens");
     if (!tok) return;
@@ -94,7 +93,7 @@ const Home: React.FC = () => {
     }
   }, []);
 
-  // 2) once we have userID + householdID + token, fetch everything
+  // once we have userID + householdID + token, fetch everything
   useEffect(() => {
     if (!userID || !householdID || !accessToken) return;
 
@@ -108,18 +107,17 @@ const Home: React.FC = () => {
         body: JSON.stringify(body)
       }).then(r => r.json());
 
-    // a) current user name
     postJson(ENDPOINTS.readUser, { UserID: userID })
       .then(d => { if (d.Name) setCurrentUserName(d.Name); })
       .catch(console.error);
 
-    // b) household name
+    // household name
     postJson(ENDPOINTS.joinHousehold, { UserID: userID, HouseholdID: householdID })
       .then(d => { if (d.HouseholdName) setHouseholdName(d.HouseholdName); })
       .catch(console.error)
       .finally(() => setLoadingName(false));
 
-    // c) DND for everyone
+    // DND for everyone
     fetch(`${ENDPOINTS.householdUsers}?HouseholdID=${householdID}`)
       .then(r => r.json())
       .then(async d => {
@@ -143,7 +141,7 @@ const Home: React.FC = () => {
       .catch(() => setDndStatus("DND status unavailable"))
       .finally(() => setLoadingDnd(false));
 
-    // d) latest notice (12‑hour)
+    // latest notice (12‑hour)
     fetch(`${ENDPOINTS.notices}?HouseholdID=${householdID}`)
       .then(r => r.json())
       .then(d => {
@@ -168,7 +166,7 @@ const Home: React.FC = () => {
       .catch(() => setNoticeText("Notice data unavailable"))
       .finally(() => setLoadingNotice(false));
 
-    // e) upcoming chore (ordinal date)
+    // upcoming chore
     fetch(`${ENDPOINTS.tasks}?HouseholdID=${householdID}`)
       .then(r => {
         if (!r.ok) throw new Error();
@@ -189,7 +187,7 @@ const Home: React.FC = () => {
       .catch(() => setChosenChore("Chore data unavailable"))
       .finally(() => setLoadingChore(false));
 
-    // f) next reservation (12‑hour)
+    // next reservation
     fetch(`${ENDPOINTS.householdUsers}?HouseholdID=${householdID}`)
       .then(r => r.json())
       .then(({ users }) => {
@@ -216,7 +214,7 @@ const Home: React.FC = () => {
       .catch(() => setNextReservation("Reservation data unavailable"))
       .finally(() => setLoadingResv(false));
 
-    // g) next bill due
+    // next bill due
     fetch(`${ENDPOINTS.bills}?HouseholdID=${householdID}`)
       .then(async r => {
         if (!r.ok) throw new Error();
@@ -265,7 +263,7 @@ const Home: React.FC = () => {
 
         {/* Widgets */}
         <MDBRow className="g-4">
-          {/* Do Not Disturb 🌙 */}
+          {/* Do Not Disturb*/}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -284,7 +282,7 @@ const Home: React.FC = () => {
             </MDBCard>
           </MDBCol>
 
-          {/* Reserved Spaces 🏠 */}
+          {/* Reserved Spaces */}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -301,7 +299,7 @@ const Home: React.FC = () => {
             </MDBCard>
           </MDBCol>
 
-          {/* Upcoming Chores 🧹 */}
+          {/* Upcoming Chores */}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -318,7 +316,7 @@ const Home: React.FC = () => {
             </MDBCard>
           </MDBCol>
 
-          {/* Bills 💸 */}
+          {/* Bills */}
           <MDBCol md="6">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -334,7 +332,7 @@ const Home: React.FC = () => {
             </MDBCard>
           </MDBCol>
 
-          {/* Notice Board 📝 */}
+          {/* Notice Board */}
           <MDBCol md="4">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",
@@ -350,7 +348,7 @@ const Home: React.FC = () => {
             </MDBCard>
           </MDBCol>
 
-          {/* Social Feed 💬 */}
+          {/* Social Feed */}
           <MDBCol md="6">
             <MDBCard className="p-3" style={{
               borderRadius: "10px",

@@ -19,11 +19,9 @@ import {
 } from "mdb-react-ui-kit";
 import { useNavigate } from "react-router-dom";
 
-// API endpoints
 const API_BASE_URL = "https://ixbggm0iid.execute-api.eu-west-1.amazonaws.com/dev";
 const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// Helper: Retrieve household ID from session tokens
 const getHouseholdIdFromSession = (): string | null => {
   const tokensString = sessionStorage.getItem("authTokens");
   if (tokensString) {
@@ -37,7 +35,6 @@ const getHouseholdIdFromSession = (): string | null => {
   return null;
 };
 
-// Helper: If householdID is missing, fetch it using the read-user endpoint and update sessionStorage
 const fetchHouseholdID = async (): Promise<string | null> => {
   const tokensString = sessionStorage.getItem("authTokens");
   if (!tokensString) return null;
@@ -92,17 +89,14 @@ const ShoppingListPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal state for adding/editing a shopping list.
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentList, setCurrentList] = useState<ShoppingList | null>(null);
   
-  // State for new/edited shopping list.
   const [newListTitle, setNewListTitle] = useState<string>("");
   const [newProduct, setNewProduct] = useState<string>("");
   const [products, setProducts] = useState<Product[]>([]);
 
-  // On mount, attempt to load householdID from session; if missing, fetch it.
   useEffect(() => {
     async function loadHouseholdID() {
       let id = getHouseholdIdFromSession();

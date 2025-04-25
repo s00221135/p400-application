@@ -1,4 +1,3 @@
-// src/App.tsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "mdb-react-ui-kit/dist/css/mdb.min.css";
@@ -14,7 +13,7 @@ import CleaningRota from "./pages/CleaningRota";
 import Profile from "./pages/Profile";
 import Confirm from "./pages/Confirm";
 import SocialFeed from "./pages/SocialFeed";
-import CreatePost from "./pages/CreatePostPage"; // Updated: use CreatePost instead of AddPost
+import CreatePost from "./pages/CreatePostPage";
 import ViewPost from "./pages/ViewPost";
 import ReserveSharedSpace from "./pages/ReserveSpace";
 import BillSplittingPage from "./pages/Bills";

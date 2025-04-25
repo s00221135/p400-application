@@ -9,7 +9,6 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>
 )
 
-// Register SW if you'd like
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker

@@ -18,7 +18,6 @@ const Confirm: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Log the state to debug what we received
   console.log("Confirm page location state:", location.state);
   // Retrieve email and password from navigation state
   const { email, password } = (location.state as { email: string; password: string }) || {};
@@ -68,7 +67,6 @@ const Confirm: React.FC = () => {
             sessionStorage.setItem("authTokens", JSON.stringify(authTokens));
             console.log("Stored authTokens in sessionStorage:", authTokens);
 
-            // After a short delay, navigate to SetupSpace
             setTimeout(() => {
               navigate("/setup-space");
             }, 2000);

@@ -19,11 +19,9 @@ import {
   MDBModalFooter,
 } from "mdb-react-ui-kit";
 
-// Adjust to your real endpoints:
 const NOTICE_API_BASE_URL = "https://enyt5vj1nl.execute-api.eu-west-1.amazonaws.com/dev";
 const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-// ----------- 1) fetchSessionData HELPER -----------
 const fetchSessionData = async (): Promise<{
   userName: string | null;
   householdID: string | null;
@@ -35,16 +33,13 @@ const fetchSessionData = async (): Promise<{
   try {
     const tokens = JSON.parse(tokensString);
 
-    // If we don't have a user ID or accessToken, can't do anything
     if (!tokens.userID || !tokens.accessToken) {
       return { userName: null, householdID: null };
     }
 
     let householdID = tokens.householdID || null;
-    // Check if we have a real user name or if it's missing / an email / random code
     let userName = tokens.Name || tokens.username || null;
 
-    // If name is missing or is an email/big code, try read-user to get the real name
     if (!userName || userName.includes("@") || userName.match(/[0-9a-f-]{8}-/i)) {
       const resp = await fetch(READ_USER_URL, {
         method: "POST",
@@ -56,15 +51,12 @@ const fetchSessionData = async (): Promise<{
       });
       if (resp.ok) {
         const data = await resp.json();
-        // Suppose 'data.Name' is the user's friendly name
         if (data.Name) {
           userName = data.Name;
         }
-        // If householdID not in tokens yet, set it from user’s data
         if (!householdID && data.HouseholdID) {
           householdID = data.HouseholdID;
         }
-        // Update session storage
         tokens.Name = userName;
         tokens.householdID = householdID;
         sessionStorage.setItem("authTokens", JSON.stringify(tokens));
@@ -89,11 +81,8 @@ interface Notice {
   CreatedAt?: string;
 }
 
-//
-// Helper function to get ordinal suffix (st, nd, rd, th)
-//
 function getOrdinalSuffix(day: number): string {
-  if (day > 3 && day < 21) return "th"; // covers 11th - 13th and similar
+  if (day > 3 && day < 21) return "th";
   switch (day % 10) {
     case 1:
       return "st";
@@ -106,12 +95,9 @@ function getOrdinalSuffix(day: number): string {
   }
 }
 
-//
-// Function to format a date string into "9th April 2025 3:04PM" format
-//
 function formatCreatedAt(dateStr: string): string {
   const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return dateStr; // fallback if invalid
+  if (isNaN(date.getTime())) return dateStr; 
 
   const day = date.getDate();
   const suffix = getOrdinalSuffix(day);
@@ -129,22 +115,17 @@ function formatCreatedAt(dateStr: string): string {
 }
 
 const NoticeBoardPage: React.FC = () => {
-  // State for household & name
   const [householdID, setHouseholdID] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
 
-  // Notices
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal state for adding note
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  // New notice fields
   const [newTitle, setNewTitle] = useState<string>("");
   const [newContent, setNewContent] = useState<string>("");
 
-  // On mount, fetch session data
   useEffect(() => {
     (async () => {
       const { userName, householdID } = await fetchSessionData();
@@ -157,14 +138,13 @@ const NoticeBoardPage: React.FC = () => {
     })();
   }, []);
 
-  // When we have a household, load notices
+  // When we have a household load notices
   useEffect(() => {
     if (householdID) {
       fetchNotices(householdID);
     }
   }, [householdID]);
 
-  // ----------- Fetch Notices -----------
   const fetchNotices = async (hid: string) => {
     setLoading(true);
     setError(null);
@@ -184,7 +164,7 @@ const NoticeBoardPage: React.FC = () => {
     setLoading(false);
   };
 
-  // ----------- Create Notice -----------
+  // Create Notice
   const addNotice = async () => {
     if (!householdID) {
       alert("No household ID found!");
@@ -199,7 +179,7 @@ const NoticeBoardPage: React.FC = () => {
       HouseholdID: householdID,
       Title: newTitle.trim(),
       Content: newContent.trim(),
-      // Instead of storing userID, store userName for a friendly display
+      // Instead of storing userID storing userName for a friendly display
       CreatedBy: userName || "Anonymous",
     };
 
@@ -213,18 +193,16 @@ const NoticeBoardPage: React.FC = () => {
         const text = await response.text();
         throw new Error(text || "Failed to create notice");
       }
-      // Clear input fields and close modal
       setNewTitle("");
       setNewContent("");
       setModalOpen(false);
-      // Refresh the list
       fetchNotices(householdID);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to create notice");
     }
   };
 
-  // ----------- Delete Notice -----------
+  // Delete
   const deleteNotice = async (nid: string) => {
     if (!householdID) {
       alert("No household ID found!");
@@ -274,7 +252,7 @@ const NoticeBoardPage: React.FC = () => {
           </MDBCol>
         </MDBRow>
 
-        {/* Display existing notices in “sticky note” style */}
+        {/* sticky note style */}
         <MDBRow>
           {notices.map((notice) => (
             <MDBCol key={notice.NoticeID} xs="12" sm="6" md="4" lg="3" className="mb-3">
@@ -321,7 +299,6 @@ const NoticeBoardPage: React.FC = () => {
                 onChange={(e) => setNewTitle(e.target.value)}
                 className="mb-3"
               />
-              {/* Instead of MDBInput with textarea prop, use a plain textarea */}
               <textarea
                 className="form-control mb-3"
                 placeholder="Note Content"

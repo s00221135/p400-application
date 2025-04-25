@@ -28,8 +28,7 @@ const JoinSpace: React.FC = () => {
   }, [navigate]);
 
   const handleJoinHousehold = async () => {
-    // Trim any leading/trailing whitespace and optionally convert to uppercase if your join codes are case-sensitive
-    const trimmedJoinCode = joinCode.trim(); // You might add .toUpperCase() if needed: joinCode.trim().toUpperCase()
+    const trimmedJoinCode = joinCode.trim(); 
 
     if (!trimmedJoinCode) {
       alert("Please enter a join code.");
@@ -55,10 +54,9 @@ const JoinSpace: React.FC = () => {
       const data = await response.json();
       console.log("Join household response data:", data);
       if (response.ok) {
-        // Save the household ID if needed
         localStorage.setItem("HouseholdID", data.HouseholdID);
         alert(`Welcome to ${data.HouseholdName}!`);
-        navigate("/home");
+        navigate("/");
       } else {
         alert("Error: " + data.message);
       }

@@ -23,7 +23,7 @@ const CreateSpace: React.FC = () => {
       return;
     }
 
-    // Store the user ID in state
+    // Stores the user ID in state
     setUserID(uID);
   }, [navigate]);
 
@@ -55,7 +55,6 @@ const CreateSpace: React.FC = () => {
       const data = await response.json();
       if (response.ok) {
         setJoinCode(data.JoinCode);
-        // Optionally store the new household ID in sessionStorage/localStorage if needed
         // localStorage.setItem("HouseholdID", data.HouseholdID);
       } else {
         alert("Error: " + data.message);
@@ -99,7 +98,7 @@ const CreateSpace: React.FC = () => {
             <MDBBtn
               color="success"
               className="w-100"
-              onClick={() => (window.location.href = "/home")}
+              onClick={() => (window.location.href = "/")}
             >
               Go to Home
             </MDBBtn>
