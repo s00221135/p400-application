@@ -1,4 +1,3 @@
-// src/pages/ViewPost.tsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -11,33 +10,74 @@ import {
   MDBInput,
 } from "mdb-react-ui-kit";
 
-const API_BASE_URL = "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev";
-const READ_USER_URL = "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
+const API_BASE_URL =
+  "https://7n84fk6fc0.execute-api.eu-west-1.amazonaws.com/dev";
+const READ_USER_URL =
+  "https://kt934ahi52.execute-api.eu-west-1.amazonaws.com/dev/read-user";
 
-const getOrdinalSuffix = (n: number): string => {
-  const j = n % 10,
-    k = n % 100;
-  if (j === 1 && k !== 11) return "st";
-  if (j === 2 && k !== 12) return "nd";
-  if (j === 3 && k !== 13) return "rd";
-  return "th";
+async function fetchSessionData(): Promise<{
+  userID: string | null;
+  userName: string | null;
+  accessToken: string | null;
+}> {
+  const tokStr = sessionStorage.getItem("authTokens");
+  if (!tokStr) return { userID: null, userName: null, accessToken: null };
+
+  try {
+    const t = JSON.parse(tokStr);
+    if (!t.userID || !t.accessToken)
+      return { userID: null, userName: null, accessToken: null };
+
+    let userName: string | null = t.Name || t.username || null;
+
+    if (!userName || userName.includes("@") || userName.match(/[0-9a-f-]{8}-/i)) {
+      const r = await fetch(READ_USER_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${t.accessToken}`,
+        },
+        body: JSON.stringify({ UserID: t.userID }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.Name) {
+          userName = d.Name;
+          t.Name = userName;
+          sessionStorage.setItem("authTokens", JSON.stringify(t));
+        }
+      }
+    }
+
+    return { userID: t.userID, userName, accessToken: t.accessToken };
+  } catch {
+    return { userID: null, userName: null, accessToken: null };
+  }
+}
+
+const getOrdinal = (n: number) =>
+  n > 3 && n < 21 ? "th" : ["th", "st", "nd", "rd"][Math.min(n % 10, 4)];
+const formatDateTime = (s: string) => {
+  const d = new Date(s);
+  const day = d.getDate();
+  const month = d.toLocaleString("default", { month: "long" });
+  const year = d.getFullYear();
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${day}${getOrdinal(day)} ${month} ${year}, ${h}:${m < 10 ? "0" : ""}${m} ${ampm}`;
 };
 
-const formatDateTime = (dateString: string): string => {
-  const date = new Date(dateString);
-  const day = date.getDate();
-  const suffix = getOrdinalSuffix(day);
-  const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(date);
-  const year = date.getFullYear();
-
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12;
-  if (hours === 0) hours = 12;
-  const minutesStr = minutes < 10 ? "0" + minutes : minutes;
-
-  return `${day}${suffix} ${month} ${year}, ${hours}:${minutesStr} ${ampm}`;
+const formatCommentStamp = (s: string) => {
+  const d = new Date(s);
+  const day = d.getDate();
+  const month = d.toLocaleString("default", { month: "short" }); // Apr
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${day} ${month} at ${h}:${m < 10 ? "0" : ""}${m}${ampm}`;
 };
 
 interface Post {
@@ -47,231 +87,194 @@ interface Post {
   CreatedAt: string;
   Likes: number;
   Tags: string[];
-  UserID: string;       // ID of the user who posted.
-  College?: string;     // Optional college information.
-  AreaOfStudy?: string; // Optional field of study information.
+  UserID: string;
+  College?: string;
+  AreaOfStudy?: string;
 }
-
 interface Comment {
   CommentID: string;
-  Author: string;
+  UserID: string;
   Content: string;
   CreatedAt: string;
+  Author?: string;
 }
 
 const ViewPost: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
+
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUserID, setCurrentUserID] = useState<string | null>(null);
 
+  const [currentUserID, setCurrentUserID] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  /* session */
   useEffect(() => {
-    const tokensString = sessionStorage.getItem("authTokens");
-    if (tokensString) {
-      try {
-        const tokens = JSON.parse(tokensString);
-        if (tokens.userID) {
-          setCurrentUserID(tokens.userID);
-        }
-      } catch (e) {
-        console.error("Error parsing authTokens:", e);
-      }
-    }
+    (async () => {
+      const s = await fetchSessionData();
+      setCurrentUserID(s.userID);
+      setCurrentUserName(s.userName);
+      setAccessToken(s.accessToken);
+    })();
   }, []);
 
-  // Fetch post details & comments.
+  /* fetch post & comments */
   useEffect(() => {
-    const fetchPostAndComments = async () => {
+    const load = async () => {
       setLoading(true);
       setError(null);
-
       try {
-        const postResponse = await fetch(`${API_BASE_URL}/get-posts/${postId}`);
-        if (!postResponse.ok)
-          throw new Error(`Failed to fetch post: ${postResponse.status}`);
-        const postData: Post = await postResponse.json();
-        setPost(postData);
+        const p = await fetch(`${API_BASE_URL}/get-posts/${postId}`);
+        if (!p.ok) throw new Error("Failed to load post");
+        setPost(await p.json());
 
-        const commentsResponse = await fetch(`${API_BASE_URL}/get-comments/${postId}`);
-        if (!commentsResponse.ok)
-          throw new Error(`Failed to fetch comments: ${commentsResponse.status}`);
-        const commentsData = await commentsResponse.json();
-        setComments(commentsData.comments || []);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load post or comments.");
-      } finally {
-        setLoading(false);
+        const c = await fetch(`${API_BASE_URL}/get-comments/${postId}`);
+        if (!c.ok) throw new Error("Failed to load comments");
+        setComments((await c.json()).comments ?? []);
+      } catch (e) {
+        setError((e as Error).message);
       }
+      setLoading(false);
     };
-
-    fetchPostAndComments();
+    load();
   }, [postId]);
 
   useEffect(() => {
-    const fetchAuthorDetails = async () => {
-      if (post && (!post.College || !post.AreaOfStudy)) {
-        const tokensString = sessionStorage.getItem("authTokens");
-        if (!tokensString) return;
-        try {
-          const tokens = JSON.parse(tokensString);
-          const accessToken = tokens.accessToken;
-          if (!accessToken) return;
+    if (!accessToken) return;
+    const missing = comments.filter((c) => !c.Author);
+    if (missing.length === 0) return;
 
-          const response = await fetch(READ_USER_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({ UserID: post.UserID }),
-          });
-
-          if (response.ok) {
-            const userData = await response.json();
-            setPost((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    College: userData.College,
-                    AreaOfStudy: userData.AreaOfStudy,
-                  }
-                : prev
-            );
-          } else {
-            console.error("Failed to fetch user details:", await response.text());
-          }
-        } catch (error) {
-          console.error("Error fetching user details:", error);
+    const ids = [...new Set(missing.map((c) => c.UserID))];
+    (async () => {
+      try {
+        const lookups = await Promise.all(
+          ids.map((uid) =>
+            fetch(READ_USER_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({ UserID: uid }),
+            }).then((r) => (r.ok ? r.json() : null))
+          )
+        );
+        const map: Record<string, string> = {};
+        lookups.forEach((u, i) => {
+          const n = u?.Name || u?.UserName || u?.username;
+          if (n) map[ids[i]] = n;
+        });
+        if (Object.keys(map).length) {
+          setComments((prev) =>
+            prev.map((c) =>
+              c.Author || !map[c.UserID] ? c : { ...c, Author: map[c.UserID] }
+            )
+          );
         }
+      } catch (e) {
+        console.error("author lookup failed:", e);
       }
-    };
+    })();
+  }, [comments, accessToken]);
 
-    fetchAuthorDetails();
-  }, [post]);
-
-  // Render the "Posted by" section.
-  const renderPostedBy = (post: Post) => {
-    const details: string[] = [];
-    if (post.College && post.College.trim() !== "") {
-      details.push(post.College);
-    }
-    if (post.AreaOfStudy && post.AreaOfStudy.trim() !== "") {
-      details.push(post.AreaOfStudy);
-    }
-    return (
-      <div>
-        <p className="mb-0">
-          <small>Posted by {post.UserName}</small>
-        </p>
-        {details.length > 0 && (
-          <p className="mb-0">
-            <small>{details.join(" │ ")}</small>
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  // Handle Comment Submission.
+  /* create comment */
   const handleCommentSubmit = async () => {
+    if (!currentUserID) {
+      setError("Please log in to comment");
+      return;
+    }
+    if (!newComment.trim()) return;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/create-comment`, {
+      const r = await fetch(`${API_BASE_URL}/create-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           PostID: postId,
           Content: newComment,
-          UserID: "12345-abcde", 
+          UserID: currentUserID,
+          Author: currentUserName ?? "Anonymous",
         }),
       });
+      if (!r.ok) throw new Error("Failed to add comment");
 
-      if (!response.ok) throw new Error("Failed to post comment.");
-
-      const newCommentData: Comment = {
-        CommentID: crypto.randomUUID(),
-        Content: newComment,
-        Author: "User123", 
-        CreatedAt: new Date().toISOString(),
-      };
-
-      setComments((prev) => [...prev, newCommentData]);
+      setComments((prev) => [
+        ...prev,
+        {
+          CommentID: crypto.randomUUID(),
+          UserID: currentUserID,
+          Content: newComment,
+          CreatedAt: new Date().toISOString(),
+          Author: currentUserName ?? "You",
+        },
+      ]);
       setNewComment("");
-    } catch (err) {
-      console.error("Error posting comment:", err);
-      setError("Failed to post comment.");
+    } catch (e) {
+      setError((e as Error).message);
     }
   };
 
-  // Handle Like.
+  /* like */
   const handleLike = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/like-post`, {
+      const r = await fetch(`${API_BASE_URL}/like-post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ PostID: postId }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        setPost((prev) => (prev ? { ...prev, Likes: data.UpdatedLikes } : null));
-      } else {
-        console.error("Error updating likes:", data.message);
-      }
-    } catch (err) {
-      console.error("Error liking post:", err);
+      if (!r.ok) return;
+      const d = await r.json();
+      setPost((p) => (p ? { ...p, Likes: d.UpdatedLikes } : p));
+    } catch (e) {
+      console.error("like failed:", e);
     }
   };
 
-  // Handle Delete Post – only allow if the current user is the post owner.
+  /* delete */
   const handleDelete = async () => {
     if (!currentUserID) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/delete-post`, {
+      const r = await fetch(`${API_BASE_URL}/delete-post`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ PostID: postId, UserID: currentUserID }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        navigate("/social-feed");
-      } else {
-        console.error("Error deleting post:", data.message);
-        setError(data.message || "Failed to delete post.");
-      }
-    } catch (err) {
-      console.error("Network error deleting post:", err);
-      setError("Network error while deleting post.");
+      if (r.ok) navigate("/social-feed");
+      else setError(await r.text());
+    } catch {
+      setError("Delete failed");
     }
   };
 
+  /* render */
   return (
     <MDBContainer className="mt-3">
-      {/* Back button navigates to /social-feed */}
       <MDBBtn color="light" onClick={() => navigate("/social-feed")} className="mb-3">
         <MDBIcon fas icon="arrow-left" /> Back
       </MDBBtn>
 
-      {loading && <p>Loading post...</p>}
+      {loading && <p>Loading…</p>}
       {error && <p className="text-danger">{error}</p>}
 
       {post && (
         <MDBCard className="mb-4">
           <MDBCardBody>
-            {/* Render "Posted by" details */}
-            {renderPostedBy(post)}
+            <p className="mb-0">
+              <small>Posted by {post.UserName}</small>
+            </p>
             <MDBCardText>{post.Content}</MDBCardText>
             <MDBCardText>
               <small>{formatDateTime(post.CreatedAt)}</small>
             </MDBCardText>
-            <MDBCardText>Tags: {post.Tags.join(", ")}</MDBCardText>
+
             <MDBBtn color="danger" size="sm" onClick={handleLike} className="me-2">
               ❤️ {post.Likes}
             </MDBBtn>
-            {/* Show Delete button only if current user is the owner */}
             {currentUserID === post.UserID && (
               <MDBBtn color="secondary" size="sm" onClick={handleDelete}>
                 Delete
@@ -283,13 +286,14 @@ const ViewPost: React.FC = () => {
 
       <h5>Comments</h5>
       {comments.length === 0 && !loading && <p>No comments yet.</p>}
-      {comments.map((comment) => (
-        <MDBCard key={comment.CommentID} className="mb-3">
+      {comments.map((c) => (
+        <MDBCard key={c.CommentID} className="mb-3">
           <MDBCardBody>
-            <MDBCardText>
-              <strong>{comment.Author}</strong>
+            <MDBCardText className="mb-0">
+              <strong>{c.Author ?? "…"}</strong>{" "}
+              <small className="text-muted">{formatCommentStamp(c.CreatedAt)}</small>
             </MDBCardText>
-            <MDBCardText>{comment.Content}</MDBCardText>
+            <MDBCardText>{c.Content}</MDBCardText>
           </MDBCardBody>
         </MDBCard>
       ))}
