@@ -2,14 +2,12 @@ import json
 import boto3
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('Households')  # Make sure this matches your actual table name
+table = dynamodb.Table('Households') 
 
 def lambda_handler(event, context):
     try:
-        # Extract path param (taskID) from the URL
         task_id = event["pathParameters"]["taskID"]
 
-        # Parse JSON body sent from client
         body = json.loads(event["body"])
         
         household_id = body.get("HouseholdID")
@@ -19,7 +17,6 @@ def lambda_handler(event, context):
         due_date = body.get("DueDate")
         completed = body.get("Completed")
 
-        # Validate input
         if not household_id:
             return {
                 "statusCode": 400,
@@ -27,7 +24,6 @@ def lambda_handler(event, context):
                 "body": json.dumps("HouseholdID is required")
             }
 
-        # 1) Retrieve the existing household item
         response = table.get_item(Key={"HouseholdID": household_id})
         household = response.get("Item")
 
@@ -38,8 +34,7 @@ def lambda_handler(event, context):
                 "body": json.dumps("No tasks found for that Household")
             }
 
-        # 2) Update the matching task in memory
-        tasks = household["Tasks"]  # This is a list of dicts
+        tasks = household["Tasks"]  
         task_found = False
         
         for t in tasks:
@@ -59,7 +54,6 @@ def lambda_handler(event, context):
                 "body": json.dumps("Task not found")
             }
 
-        # 3) Update the table with the *entire* tasks array
         table.update_item(
             Key={"HouseholdID": household_id},
             UpdateExpression="SET Tasks = :tasks",

@@ -34,7 +34,6 @@ def lambda_handler(event, context):
         }
     
     if join_code:
-        # 1) Find household by JoinCode
         response = households_table.scan(
             FilterExpression="JoinCode = :code",
             ExpressionAttributeValues={":code": join_code}
@@ -49,7 +48,6 @@ def lambda_handler(event, context):
         household = items[0]
         household_id = household["HouseholdID"]
         
-        # 2) If user not already a member, add them
         updated_members = household.get("Members", [])
         if user_id not in updated_members:
             updated_members.append(user_id)
@@ -67,14 +65,12 @@ def lambda_handler(event, context):
         else:
             message = "User is already part of the household"
     else:
-        # If no join code is provided, we expect HouseholdID
         if not household_id:
             return {
                 "statusCode": 400,
                 "headers": cors_headers,
                 "body": json.dumps({"message": "HouseholdID is required if no JoinCode is provided"})
             }
-        # Retrieve household
         response = households_table.get_item(Key={"HouseholdID": household_id})
         household = response.get("Item")
         if not household:
@@ -85,15 +81,12 @@ def lambda_handler(event, context):
             }
         message = "Household retrieved"
     
-    # 3) Extract household name & join code.
-    # (This code handles DynamoDB's potential format, but if you're using plain JSON you can simplify it.)
     household_name = household.get("Name", "Unknown")
     if isinstance(household_name, dict) and "S" in household_name:
         household_name = household_name["S"]
     
     join_code_val = household.get("JoinCode", "")
     
-    # Return the Household info including the Admins array.
     return {
         "statusCode": 200,
         "headers": cors_headers,
@@ -102,6 +95,6 @@ def lambda_handler(event, context):
             "HouseholdID": household.get("HouseholdID"),
             "HouseholdName": household_name,
             "JoinCode": join_code_val,
-            "Admins": household.get("Admins", [])   # <-- Added this line to return admins
+            "Admins": household.get("Admins", []) 
         })
     }

@@ -2,9 +2,8 @@ from decimal import Decimal
 import json
 import boto3
 
-# Initialize DynamoDB resource
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('UserDetails')  # Adjust table name if needed
+table = dynamodb.Table('UserDetails') 
 
 def convert_decimals(obj):
     """Recursively convert Decimal types to float."""
@@ -18,7 +17,6 @@ def convert_decimals(obj):
         return obj
 
 def lambda_handler(event, context):
-    # Handle preflight OPTIONS request
     if event.get('httpMethod') == 'OPTIONS':
         return {
             "statusCode": 200,
@@ -30,7 +28,6 @@ def lambda_handler(event, context):
             "body": ""
         }
     
-    # Read the user ID from the request body
     try:
         body = json.loads(event.get("body", "{}"))
         user_id = body.get("UserID")
@@ -56,7 +53,6 @@ def lambda_handler(event, context):
         }
     
     try:
-        # Retrieve user details from DynamoDB
         response = table.get_item(Key={"UserID": user_id})
         if "Item" not in response:
             return {
@@ -69,7 +65,6 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "User not found"})
             }
         user_data = response["Item"]
-        # Convert Decimals for JSON serialization
         user_data = convert_decimals(user_data)
         return {
             "statusCode": 200,

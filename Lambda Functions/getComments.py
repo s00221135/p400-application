@@ -1,13 +1,11 @@
 import json
 import boto3
 
-# Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("SocialFeedComments")  # Ensure this matches your table name
+table = dynamodb.Table("SocialFeedComments")
 
 def lambda_handler(event, context):
     try:
-        # Extract PostID from path parameters
         post_id = event.get("pathParameters", {}).get("postID")
 
         if not post_id:
@@ -19,7 +17,6 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "Missing postID in request"})
             }
 
-        # ⚡ Use Scan to find comments with matching PostID (Not optimal but necessary)
         response = table.scan(
             FilterExpression=boto3.dynamodb.conditions.Attr("PostID").eq(post_id)
         )

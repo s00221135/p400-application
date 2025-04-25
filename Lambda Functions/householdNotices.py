@@ -5,7 +5,7 @@ from boto3.dynamodb.conditions import Key
 from datetime import datetime
 
 dynamodb = boto3.resource("dynamodb", region_name="eu-west-1")
-TABLE_NAME = "HouseholdNotices"  # <-- Make sure this matches your table name
+TABLE_NAME = "HouseholdNotices"
 table = dynamodb.Table(TABLE_NAME)
 
 def lambda_handler(event, context):
@@ -16,10 +16,8 @@ def lambda_handler(event, context):
     query_params = event.get("queryStringParameters") or {}
     notice_id = path_parameters.get("id")
 
-    # Figure out the resource path, e.g. /notices, /notices/{id}, etc.
     resource_path = event.get("resource", "")
 
-    # Attempt to get HouseholdID from query string or from request body
     household_id = query_params.get("HouseholdID")
     if not household_id:
         try:
@@ -33,7 +31,6 @@ def lambda_handler(event, context):
 
     try:
         if method == "GET":
-            # 1) List notices for the household
             response = table.query(
                 KeyConditionExpression=Key('HouseholdID').eq(household_id)
             )
@@ -41,31 +38,25 @@ def lambda_handler(event, context):
             return respond(200, {"notices": notices})
 
         elif method == "POST":
-            # 2) Create a new notice
             data = json.loads(event.get('body') or "{}")
 
             data['NoticeID'] = str(uuid.uuid4())
             data['HouseholdID'] = household_id
             
-            # Optional: add a CreatedAt timestamp
             data['CreatedAt'] = datetime.utcnow().isoformat() + "Z"
 
-            # Put the item in DynamoDB
             table.put_item(Item=data)
             return respond(201, data)
 
         elif method == "PUT":
-            # 3) Update (full replace) an existing notice
             if not notice_id:
                 return respond(400, {"message": "Missing NoticeID in path"})
 
             data = json.loads(event.get("body") or "{}")
 
-            # Make sure the item we put has the same HouseholdID and NoticeID
             data['HouseholdID'] = household_id
             data['NoticeID'] = notice_id
 
-            # Optionally, preserve original CreatedAt if not provided again
             existing_item = table.get_item(
                 Key={"HouseholdID": household_id, "NoticeID": notice_id}
             ).get("Item")
@@ -80,7 +71,6 @@ def lambda_handler(event, context):
             return respond(200, data)
 
         elif method == "DELETE":
-            # 4) Delete a notice
             if not notice_id:
                 return respond(400, {"message": "Missing NoticeID in path"})
 
@@ -112,7 +102,7 @@ def respond(status_code, body):
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",            # or your domain
+            "Access-Control-Allow-Origin": "*",        
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT,DELETE",
         },

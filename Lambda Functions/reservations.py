@@ -15,10 +15,8 @@ def lambda_handler(event, context):
     query_params = event.get("queryStringParameters") or {}
     reservation_id = path_parameters.get("id")
 
-    # Resource path might look like /reservations/{id}/approve for approvals
     resource_path = event.get("resource", "")
 
-    # Get HouseholdID from query string or request body
     household_id = query_params.get("HouseholdID")
     if not household_id:
         try:
@@ -32,7 +30,6 @@ def lambda_handler(event, context):
 
     try:
         if method == "GET":
-            # List reservations for the household
             response = table.query(
                 KeyConditionExpression=Key('HouseholdID').eq(household_id)
             )
@@ -40,13 +37,11 @@ def lambda_handler(event, context):
             return respond(200, {"reservations": reservations})
 
         elif method == "POST":
-            # Create a new reservation
             data = json.loads(event.get('body') or "{}")
 
             data['ReservationID'] = str(uuid.uuid4())
             data['HouseholdID'] = household_id
 
-            # Always start as Pending
             data['ApprovalStatus'] = "Pending"
             data['Approvers'] = []
 
@@ -54,19 +49,15 @@ def lambda_handler(event, context):
             return respond(201, data)
 
         elif method == "PUT":
-            # Update an existing reservation (full replace)
             if not reservation_id:
                 return respond(400, {"message": "Missing reservation ID in path"})
 
             data = json.loads(event.get('body') or "{}")
 
-            # This is how we identify the user making the request.
-            # In a real app, you'd parse a JWT or session token.
             requesting_user_id = data.get("RequestUserID")
             if not requesting_user_id:
                 return respond(400, {"message": "Missing RequestUserID in request body"})
 
-            # Fetch the existing item to confirm ownership
             existing_item = table.get_item(
                 Key={"HouseholdID": household_id, "ReservationID": reservation_id}
             ).get("Item")
@@ -74,15 +65,12 @@ def lambda_handler(event, context):
             if not existing_item:
                 return respond(404, {"message": "Reservation not found"})
 
-            # If the user is not the creator, forbid
             if existing_item["ReservedBy"] != requesting_user_id:
                 return respond(403, {"message": "You are not allowed to edit this reservation."})
 
-            # Preserve the same ReservationID & HouseholdID
             data['ReservationID'] = reservation_id
             data['HouseholdID'] = household_id
 
-            # If client didn't provide ApprovalStatus or Approvers, preserve existing
             if 'ApprovalStatus' not in data:
                 data['ApprovalStatus'] = existing_item.get('ApprovalStatus', 'Pending')
             if 'Approvers' not in data:
@@ -92,11 +80,9 @@ def lambda_handler(event, context):
             return respond(200, data)
 
         elif method == "DELETE":
-            # Delete a reservation
             if not reservation_id:
                 return respond(400, {"message": "Missing reservation ID in path"})
 
-            # GET the user from query param for demonstration
             requesting_user_id = query_params.get("UserID")
             if not requesting_user_id:
                 return respond(400, {"message": "Missing UserID in query parameters"})
@@ -125,7 +111,7 @@ def lambda_handler(event, context):
             if not reservation_id:
                 return respond(400, {"message": "Missing reservation ID in path"})
             body_data = json.loads(event.get("body") or "{}")
-            action = body_data.get("Action")  # "Approve" or "Reject"
+            action = body_data.get("Action")  
             user_id = body_data.get("UserID")
 
             if not action or not user_id:
@@ -141,7 +127,6 @@ def lambda_handler(event, context):
             if not existing_item:
                 return respond(404, {"message": "Reservation not found"})
 
-            # If user hasn't already approved, add them to Approvers
             approvers = existing_item.get("Approvers", [])
             if user_id not in approvers:
                 approvers.append(user_id)

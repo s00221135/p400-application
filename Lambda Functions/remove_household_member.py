@@ -14,8 +14,6 @@ def lambda_handler(event, context):
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": cors_headers, "body": ""}
 
-    # Expect JSON: { "HouseholdID": "...", "RequestingUserID": "...", "TargetUserID": "..." }
-    # The "RequestingUserID" must be an admin
     body = json.loads(event.get("body", "{}"))
     household_id = body.get("HouseholdID")
     requesting_user_id = body.get("RequestingUserID")
@@ -28,7 +26,6 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": "Missing required fields"})
         }
 
-    # 1) Fetch household
     res = households_table.get_item(Key={"HouseholdID": household_id})
     household = res.get("Item")
     if not household:
@@ -41,7 +38,6 @@ def lambda_handler(event, context):
     admins = household.get("Admins", [])
     members = household.get("Members", [])
 
-    # 2) Must be admin to remove someone
     if requesting_user_id not in admins:
         return {
             "statusCode": 403,
@@ -49,15 +45,11 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": "Not an admin of this household"})
         }
 
-    # 3) Remove from members
     if target_user_id in members:
         members.remove(target_user_id)
-    # Also remove from admins if they happened to be admin
     if target_user_id in admins:
         admins.remove(target_user_id)
-        # You might want to ensure that you’re not removing the last admin, etc.
 
-    # 4) Update the household record
     households_table.update_item(
         Key={"HouseholdID": household_id},
         UpdateExpression="SET Members = :m, Admins = :a",
@@ -67,7 +59,6 @@ def lambda_handler(event, context):
         }
     )
 
-    # 5) Also set that user’s HouseholdID to None
     users_table.update_item(
         Key={"UserID": target_user_id},
         UpdateExpression="SET HouseholdID = :nullVal",

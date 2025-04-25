@@ -30,7 +30,7 @@ def lambda_handler(event, context):
             "Completed": False
         }
 
-        # ✅ Add task to Household's task list
+        #Add task to Household's task list
         table.update_item(
             Key={"HouseholdID": household_id},
             UpdateExpression="SET Tasks = list_append(if_not_exists(Tasks, :empty_list), :task)",

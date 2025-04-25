@@ -32,8 +32,6 @@ def lambda_handler(event, context):
     join_code = str(uuid.uuid4().int)[:6]
     created_at = datetime.datetime.utcnow().isoformat()
 
-    # New: store "Admins" in a set or list
-    # If user_id is provided, that user becomes the first admin
     admins = []
     members = []
 
@@ -50,10 +48,8 @@ def lambda_handler(event, context):
         "Members": members
     }
 
-    # Insert into Households
     households_table.put_item(Item=item)
 
-    # Also set the user's HouseholdID if a user was provided
     if user_id:
         users_table.update_item(
             Key={"UserID": user_id},

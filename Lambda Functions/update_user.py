@@ -2,9 +2,8 @@ from decimal import Decimal, InvalidOperation
 import json
 import boto3
 
-# Initialize DynamoDB resource
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('UserDetails')  # Ensure this matches your DynamoDB table name
+table = dynamodb.Table('UserDetails')  
 
 def convert_decimals(obj):
     """
@@ -20,19 +19,17 @@ def convert_decimals(obj):
         return obj
 
 def lambda_handler(event, context):
-    # Handle preflight OPTIONS request for CORS
     if event.get('httpMethod') == 'OPTIONS':
         return {
             "statusCode": 200,
             "headers": {
-                "Access-Control-Allow-Origin": "http://localhost:5173",  # Adjust as needed
+                "Access-Control-Allow-Origin": "http://localhost:5173",
                 "Access-Control-Allow-Headers": "Content-Type,Authorization",
                 "Access-Control-Allow-Methods": "OPTIONS,POST,PUT,GET,DELETE"
             },
             "body": ""
         }
     
-    # Parse the request body
     try:
         body = json.loads(event.get("body", "{}"))
         user_id = body["UserID"]
@@ -48,7 +45,6 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": "UserID is required in request body"})
         }
     
-    # Build an update expression dynamically for all fields except "UserID"
     expression_pieces = []
     expression_names = {}
     expression_values = {}
@@ -60,30 +56,24 @@ def lambda_handler(event, context):
         expression_pieces.append(f"#field_{key} = :val_{key}")
         expression_names[f"#field_{key}"] = key
 
-        # Explicitly check for booleans first so they don't get converted to Decimal.
         if isinstance(value, bool):
             expression_values[f":val_{key}"] = value
-        # Process numeric types directly.
         elif isinstance(value, (int, float)):
             try:
                 expression_values[f":val_{key}"] = Decimal(str(value))
             except (ValueError, InvalidOperation) as num_err:
                 print(f"Error converting numeric field {key}: {num_err}")
                 expression_values[f":val_{key}"] = value
-        # For strings, attempt to convert only if it seems numeric.
         elif isinstance(value, str):
             if value.strip() == "":
                 expression_values[f":val_{key}"] = value
             else:
                 try:
-                    # Attempt to convert to float; if successful, then to Decimal.
                     float_value = float(value)
                     expression_values[f":val_{key}"] = Decimal(value)
                 except (ValueError, InvalidOperation):
-                    # Otherwise, use the string as-is.
                     expression_values[f":val_{key}"] = value
         else:
-            # For other types, store as is.
             expression_values[f":val_{key}"] = value
 
     if not expression_pieces:

@@ -15,7 +15,7 @@ def convert_decimals(obj):
     elif isinstance(obj, dict):
         return {k: convert_decimals(v) for k, v in obj.items()}
     elif isinstance(obj, Decimal):
-        return float(obj)  # Convert Decimal to float
+        return float(obj) 
     else:
         return obj
 
@@ -29,12 +29,11 @@ def lambda_handler(event, context):
     """
     user_id = event["UserID"]
     
-    # Attempt to delete item
     response = table.delete_item(
         Key={
             "UserID": user_id
         },
-        ReturnValues="ALL_OLD"  # Return the deleted item attributes
+        ReturnValues="ALL_OLD" 
     )
 
     if "Attributes" not in response:
@@ -43,7 +42,6 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": "User not found or already deleted"})
         }
 
-    # Convert Decimals in the deleted item to JSON-serializable types
     deleted_item = convert_decimals(response["Attributes"])
 
     return {

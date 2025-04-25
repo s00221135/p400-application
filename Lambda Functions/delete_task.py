@@ -6,13 +6,10 @@ table = dynamodb.Table('Households')
 
 def lambda_handler(event, context):
     try:
-        # With Lambda Proxy Integration, API Gateway passes path params here:
         task_id = event["pathParameters"]["taskID"]
         
-        # ...and query params here:
         household_id = event["queryStringParameters"]["HouseholdID"]
 
-        # your existing logic:
         response = table.get_item(Key={"HouseholdID": household_id})
         household = response.get('Item')
 

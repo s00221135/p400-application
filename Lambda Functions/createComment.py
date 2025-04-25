@@ -3,13 +3,11 @@ import boto3
 import uuid
 from datetime import datetime
 
-# Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table("SocialFeedComments")
 
 def lambda_handler(event, context):
     try:
-        # Parse request body
         if "body" in event:
             body = json.loads(event["body"])
         else:
@@ -23,7 +21,6 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "Missing request body"})
             }
 
-        # Extract required fields
         post_id = body.get("PostID")
         user_id = body.get("UserID")
         content = body.get("Content")
@@ -39,10 +36,8 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "Missing required fields"})
             }
 
-        # Generate unique CommentID
         comment_id = str(uuid.uuid4())
 
-        # Store comment in DynamoDB
         item = {
             "CommentID": comment_id,
             "PostID": post_id,

@@ -4,18 +4,14 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-# Initialize AWS services
 dynamodb = boto3.resource("dynamodb")
-geo_client = boto3.client("location")  # Amazon Location Service Client
+geo_client = boto3.client("location") 
 
-# DynamoDB Tables
 posts_table = dynamodb.Table("SocialFeedPosts")
 users_table = dynamodb.Table("UserDetails")
 
-# Amazon Location Service Geofence Collection Name
 GEOFENCE_COLLECTION = "student-post-geofences"
 
-# ✅ Move response function to the top to prevent "UnboundLocalError"
 def response(status_code, message, extra_data=None):
     body = {"message": message}
     if extra_data:
@@ -32,43 +28,37 @@ def response(status_code, message, extra_data=None):
     }
 
 def lambda_handler(event, context):
-    print("Received event:", json.dumps(event, indent=2))  # Debug log
+    print("Received event:", json.dumps(event, indent=2)) 
 
     try:
-        # Ensure event body exists and is properly parsed
         body = event.get("body")
         if not body:
             return response(400, "Missing request body")
 
         body = json.loads(body)
 
-        # Extract post data
         user_id = body.get("UserID")
         content = body.get("Content")
         latitude = body.get("Latitude")
         longitude = body.get("Longitude")
-        tags = body.get("Tags", [])  # Default to empty list
-        geofence_radius = body.get("GeofenceRadius", 500)  # Default 500m
+        tags = body.get("Tags", []) 
+        geofence_radius = body.get("GeofenceRadius", 500) 
 
         if not user_id or not content or latitude is None or longitude is None:
             return response(400, "Missing required fields")
 
-        # Convert to Decimal for DynamoDB
         latitude = Decimal(str(latitude))
         longitude = Decimal(str(longitude))
         geofence_radius = Decimal(str(geofence_radius))
 
-        # Fetch user details
         user_data = users_table.get_item(Key={"UserID": user_id})
         if "Item" not in user_data:
             return response(404, "User not found")
 
         display_name = user_data["Item"].get("Name", "Unknown User")
 
-        # Generate Post ID
         post_id = str(uuid.uuid4())
 
-        # ✅ **Log ALS interaction before creating a geofence**
         print(f"Creating geofence for PostID: {post_id}, Lat: {latitude}, Long: {longitude}")
 
         #Create a geofence in Amazon Location Service
@@ -90,7 +80,6 @@ def lambda_handler(event, context):
         #Logs response from Location Service
         print(f"Geofence created: {response_geo}")
 
-        #Store Post in DB
         item = {
             "PostID": post_id,
             "UserID": user_id,
@@ -100,7 +89,7 @@ def lambda_handler(event, context):
             "GeofenceRadius": geofence_radius,
             "Latitude": latitude,
             "Longitude": longitude,
-            "GeofenceID": geofence_id,  # ✅ Store GeofenceID
+            "GeofenceID": geofence_id,
             "CreatedAt": datetime.utcnow().isoformat(),
             "Likes": 0
         }
@@ -109,5 +98,5 @@ def lambda_handler(event, context):
         return response(200, "Post created successfully", {"PostID": post_id})
 
     except Exception as e:
-        print(f"Error: {e}")  # ✅ Log the error for debugging
+        print(f"Error: {e}") 
         return response(500, "Error creating post", {"error": str(e)})

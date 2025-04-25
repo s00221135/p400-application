@@ -3,12 +3,11 @@ import boto3
 from decimal import Decimal
 
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("UserDetails")  # Ensure this is your correct table name
+table = dynamodb.Table("UserDetails") 
 
 def lambda_handler(event, context):
     print("Received event:", json.dumps(event))
     try:
-        # Parse query parameters
         qs = event.get("queryStringParameters") or {}
         household_id = qs.get("HouseholdID")
         
@@ -19,7 +18,6 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Missing HouseholdID query param"})
             }
         
-        # Scan for all users with the specified HouseholdID
         scan_response = table.scan(
             FilterExpression="HouseholdID = :hid",
             ExpressionAttributeValues={":hid": household_id}

@@ -3,38 +3,26 @@ import boto3
 import uuid
 
 dynamodb = boto3.resource("dynamodb")
-households_table = dynamodb.Table("Households")  # Use your actual table name
+households_table = dynamodb.Table("Households") 
 
 def lambda_handler(event, context):
-    # Basic CORS
     cors_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
         "Access-Control-Allow-Methods": "OPTIONS,POST"
     }
 
-    # Handle OPTIONS (preflight)
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": cors_headers, "body": ""}
 
     body = json.loads(event.get("body", "{}"))
 
-    # Expect:
-    # {
-    #   "HouseholdID": "...",
-    #   "RequestingUserID": "...",
-    #   "Action": "grant"|"revoke"|"regenerate"|"rename",
-    #   "TargetUserID": "..."  (if grant/revoke)
-    #   "NewName": "..."       (if rename)
-    # }
-
     household_id = body.get("HouseholdID")
     requesting_user_id = body.get("RequestingUserID")
     action = body.get("Action")
-    target_user_id = body.get("TargetUserID")  # only for grant/revoke
-    new_name = body.get("NewName")             # only for rename
+    target_user_id = body.get("TargetUserID")  
+    new_name = body.get("NewName")             
 
-    # Validate
     if not (household_id and requesting_user_id and action):
         return {
             "statusCode": 400,
@@ -42,7 +30,6 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": "Missing HouseholdID, RequestingUserID, or Action"})
         }
 
-    # Retrieve household record from 'Households' table
     res = households_table.get_item(Key={"HouseholdID": household_id})
     household = res.get("Item")
     if not household:
@@ -52,7 +39,6 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": "Household not found"})
         }
 
-    # Check if requestor is admin
     admins = household.get("Admins", [])
     if requesting_user_id not in admins:
         return {
@@ -61,7 +47,6 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": "You are not an admin of this household"})
         }
 
-    # Now handle each action
     if action == "grant":
         if not target_user_id:
             return {
@@ -140,7 +125,6 @@ def lambda_handler(event, context):
                 "headers": cors_headers,
                 "body": json.dumps({"message": "NewName is required for rename"})
             }
-        # Update the 'Name' field in the Households table
         households_table.update_item(
             Key={"HouseholdID": household_id},
             UpdateExpression="SET #n = :val_name",

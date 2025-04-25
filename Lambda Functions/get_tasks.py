@@ -6,9 +6,8 @@ table = dynamodb.Table('Households')
 
 def lambda_handler(event, context):
     try:
-        print("📡 Event received:", json.dumps(event))  # Debugging event
+        print("📡 Event received:", json.dumps(event))  
         
-        # ✅ Extract HouseholdID correctly
         household_id = event.get('queryStringParameters', {}).get('HouseholdID')
 
         if not household_id:
@@ -18,7 +17,7 @@ def lambda_handler(event, context):
                 "body": json.dumps("Missing HouseholdID")
             }
 
-        print("🔍 Fetching tasks for HouseholdID:", household_id)  # Debugging
+        print("🔍 Fetching tasks for HouseholdID:", household_id)  
 
         response = table.get_item(Key={"HouseholdID": household_id})
         household = response.get('Item')
@@ -30,7 +29,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "No tasks found"})
             }
 
-        print("✅ Tasks retrieved successfully:", household["Tasks"])  # Debugging
+        print("Tasks retrieved successfully:", household["Tasks"])  
 
         return {
             "statusCode": 200,
@@ -39,7 +38,7 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
-        print("🚨 Error:", str(e))  # Debugging errors
+        print("🚨 Error:", str(e))  
         return {
             "statusCode": 500,
             "headers": {"Access-Control-Allow-Origin": "*"},
